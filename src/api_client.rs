@@ -100,8 +100,6 @@ impl ApiClient {
                 .map_err(|_| RequestError::CertError)?,
         };
 
-
-
         client_builder = client_builder.add_root_certificate(cert);
 
         let client = client_builder.build()?;

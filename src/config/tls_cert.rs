@@ -64,3 +64,17 @@ impl TlsCertHandler {
         path
     }
 }
+
+#[cfg(test)]
+#[tokio::test]
+async fn download_cert() {
+    let path = std::path::Path::new("./tests/fixtures/temp_cert.crt").to_path_buf();
+    println!("{path:?}");
+    let _ = TlsCertHandler::download_cert(&path).await;
+
+    let cert = std::fs::read(&path).expect("cert should have been downloaded");
+    let first_27_chars = str::from_utf8(&cert[..27]).expect("should be utf8 text");
+    assert_eq!(first_27_chars, "-----BEGIN CERTIFICATE-----");
+    assert_eq!(cert.len(), 1184);
+    std::fs::remove_file(&path).expect("should not fail on cleanup")
+}
