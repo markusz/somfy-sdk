@@ -1,3 +1,4 @@
+use log::debug;
 use reqwest::Certificate;
 use std::fs::File;
 use std::path::PathBuf;
@@ -19,7 +20,10 @@ impl TlsCertHandler {
         let path = Self::get_file_location();
 
         Self::ensure_local_folder(folder)?;
-        Self::download_cert(&path).await?;
+        if std::fs::read(&path).is_err() {
+            debug!("Cert not available at {path:?}. Downloading from {REMOTE_CERT_LOCATION}");
+            Self::download_cert(&path).await?;
+        }
 
         let cert = std::fs::read(&path).map_err(|_| CertificateError::InvalidLocalCert)?;
         Certificate::from_pem(&cert).map_err(|_| CertificateError::InvalidLocalCert)
@@ -31,18 +35,17 @@ impl TlsCertHandler {
     }
 
     async fn download_cert(path: &PathBuf) -> Result<(), CertificateError> {
-        if std::fs::read(path).is_err() {
-            let resp = reqwest::get(REMOTE_CERT_LOCATION)
-                .await
-                .map_err(|_| CertificateError::RemoteCertError)?;
-            let body = resp
-                .text()
-                .await
-                .map_err(|_| CertificateError::RemoteCertError)?;
-            let mut out = File::create(path).map_err(|_| CertificateError::FileSystemError)?;
-            std::io::copy(&mut body.as_bytes(), &mut out)
-                .map_err(|_| CertificateError::FileSystemError)?;
-        }
+        let resp = reqwest::get(REMOTE_CERT_LOCATION)
+            .await
+            .map_err(|_| CertificateError::RemoteCertError)?;
+        let body = resp
+            .text()
+            .await
+            .map_err(|_| CertificateError::RemoteCertError)?;
+        let mut out = File::create(path).map_err(|_| CertificateError::FileSystemError)?;
+        std::io::copy(&mut body.as_bytes(), &mut out)
+            .map_err(|_| CertificateError::FileSystemError)?;
+
         Ok(())
     }
 
