@@ -1,13 +1,28 @@
 use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
 use crate::commands::traits::SomfyApiRequestResponse;
 use crate::commands::traits::{RequestData, SomfyApiRequestCommand};
+use crate::config::tls_cert::TlsCertHandler;
 use crate::err::http::RequestError;
+use reqwest::{Certificate, ClientBuilder};
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum HttpProtocol {
+    HTTP,
+    HTTPS,
+}
+#[derive(Debug, Clone, PartialEq)]
+pub enum CertificateHandling {
+    CertProvided(String),
+    DefaultCert,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiClientConfig {
-    url: String,
-    port: usize,
-    api_key: String,
+    pub cert_handling: CertificateHandling,
+    pub protocol: HttpProtocol,
+    pub url: String,
+    pub port: usize,
+    pub api_key: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,26 +58,52 @@ pub struct ApiClient {
     config: ApiClientConfig,
 }
 
+const DEFAULT_PORT: usize = 8443;
+
 impl ApiClient {
     pub fn new(config: ApiClientConfig) -> Self {
         ApiClient { config }
     }
 
-    pub fn from(url: String, port: usize, api_key: String) -> Self {
+    pub fn from(id: &str, api_key: &str) -> Self {
         ApiClient {
-            config: ApiClientConfig { url, port, api_key },
+            config: ApiClientConfig {
+                url: format!("gateway-{id}.local"),
+                port: DEFAULT_PORT,
+                api_key: api_key.to_string(),
+                protocol: HttpProtocol::HTTPS,
+                cert_handling: CertificateHandling::DefaultCert,
+            },
         }
     }
 
     pub async fn execute(&self, command: ApiRequest) -> Result<ApiResponse, RequestError> {
         let request_data: RequestData = (&command).into();
-        let path = format!(
-            "http://{}:{}{}",
-            self.config.url, self.config.port, request_data.path
-        );
+        let protocol = match self.config.protocol {
+            HttpProtocol::HTTP => "http",
+            HttpProtocol::HTTPS => "https",
+        };
 
-        println!("{path:?}");
-        let body = reqwest::get(path).await?.text().await?;
+        let path = format!(
+            "{}://{}:{}{}",
+            protocol, self.config.url, self.config.port, request_data.path
+        );
+        let mut client_builder = ClientBuilder::new();
+
+        let cert: Certificate = match &self.config.cert_handling {
+            CertificateHandling::CertProvided(path) => {
+                let crt = std::fs::read(path).map_err(|_| RequestError::CertError)?;
+                Certificate::from_pem(&crt)?
+            }
+            CertificateHandling::DefaultCert => TlsCertHandler::ensure_local_certificate()
+                .await
+                .map_err(|_| RequestError::CertError)?,
+        };
+
+        client_builder = client_builder.add_root_certificate(cert);
+
+        let client = client_builder.build()?;
+        let body = client.get(path).send().await?.text().await?;
 
         Self::map_request_to_response(command, &body)
     }
@@ -88,33 +129,51 @@ impl ApiClient {
 
 #[cfg(test)]
 mod api_client_tests {
-    use crate::api_client::{ApiClient, ApiClientConfig, ApiRequest};
-    use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
+    use crate::api_client::{
+        ApiClient, ApiClientConfig, ApiRequest, ApiResponse, CertificateHandling, DEFAULT_PORT,
+        HttpProtocol,
+    };
+    use crate::commands::get_version::GetVersionCommand;
     use rstest::*;
 
     #[fixture]
     fn api_client() -> ApiClient {
-        ApiClient::from("testurl.com".to_string(), 1000, "1234".to_string())
+        ApiClient::from("0000-1111-2222", "my_key")
     }
 
     #[test]
     fn creates_api_client_with_new() {
         let api_client = ApiClient::new(ApiClientConfig {
-            port: 1000,
-            url: "testurl.com".to_string(),
-            api_key: "1234".to_string(),
+            protocol: HttpProtocol::HTTP,
+            port: 2000,
+            url: "somedomain.com".to_string(),
+            api_key: "my_key".to_string(),
+            cert_handling: CertificateHandling::DefaultCert,
         });
-        assert_eq!(api_client.config.port, 1000);
-        assert_eq!(api_client.config.url, "testurl.com".to_string());
-        assert_eq!(api_client.config.api_key, "1234".to_string());
+        assert_eq!(api_client.config.protocol, HttpProtocol::HTTP);
+        assert_eq!(api_client.config.port, 2000);
+        assert_eq!(api_client.config.url, "somedomain.com".to_string());
+        assert_eq!(api_client.config.api_key, "my_key".to_string());
+        assert_eq!(
+            api_client.config.cert_handling,
+            CertificateHandling::DefaultCert
+        );
     }
 
     #[test]
     fn creates_api_client_with_from() {
-        let api_client = ApiClient::from("testurl.com".to_string(), 1000, "1234".to_string());
-        assert_eq!(api_client.config.port, 1000);
-        assert_eq!(api_client.config.url, "testurl.com".to_string());
-        assert_eq!(api_client.config.api_key, "1234".to_string());
+        let api_client = ApiClient::from("0000-1111-2222", "my_key");
+        assert_eq!(api_client.config.port, DEFAULT_PORT);
+        assert_eq!(
+            api_client.config.url,
+            "gateway-0000-1111-2222.local".to_string()
+        );
+        assert_eq!(
+            api_client.config.cert_handling,
+            CertificateHandling::DefaultCert
+        );
+        assert_eq!(api_client.config.protocol, HttpProtocol::HTTPS);
+        assert_eq!(api_client.config.api_key, "my_key".to_string());
     }
 
     #[tokio::test]
@@ -125,6 +184,8 @@ mod api_client_tests {
         let response = ApiClient::map_request_to_response(request, valid_body)
             .expect("should return a ApiResponse::GetVersion");
 
-        assert!(matches!(response, GetVersionCommandResponse))
+        // let is_right_type = (&response as &dyn Any).is::<ApiResponse::GetVersion(GetVersionCommandResponse)>();
+        // assert!(is_right_type)
+        assert!(matches!(response, ApiResponse::GetVersion(_)))
     }
 }

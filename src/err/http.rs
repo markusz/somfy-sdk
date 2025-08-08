@@ -9,6 +9,7 @@ pub enum RequestError {
     NotFoundError,
     ServerError,
     InvalidBody,
+    CertError,
 }
 
 impl From<ReqwestError> for RequestError {
@@ -22,7 +23,25 @@ impl From<ReqwestError> for RequestError {
             }
             Some(code) if [StatusCode::NOT_FOUND].contains(&code) => RequestError::NotFoundError,
             Some(code) if code >= StatusCode::INTERNAL_SERVER_ERROR => RequestError::ServerError,
-            None => RequestError::UnknownError,
+            None => {
+                // Since certs are self-signed this will be a common source of error,
+                // so we treat certificate errors explicitly.
+                let anyhow_err: anyhow::Error = e.into();
+
+                let is_cert_error = anyhow_err.chain().any(|err| {
+                    let err_str = err.to_string();
+                    println!("{err_str}");
+                    err_str.contains("certificate")
+                        || err_str.contains("tls")
+                        || err_str.contains("ssl")
+                });
+
+                if is_cert_error {
+                    RequestError::CertError
+                } else {
+                    RequestError::UnknownError
+                }
+            }
             _ => RequestError::UnknownError,
         }
     }

@@ -1,15 +1,19 @@
-use sdk::api_client::ApiClient;
-
 #[cfg(test)]
 mod http_integration_tests {
     use rstest::*;
-    use sdk::api_client::ApiRequest::GetVersion;
-    use sdk::api_client::{ApiClient, ApiRequest};
-    use sdk::commands::get_version::GetVersionCommand;
+    use sdk::api_client::{ApiClient, ApiClientConfig, CertificateHandling, HttpProtocol};
 
     #[fixture]
     fn api_client_localhost() -> ApiClient {
-        ApiClient::from("localhost".to_string(), 3000, "MY_API_KEY".to_string())
+        ApiClient::new(ApiClientConfig {
+            protocol: HttpProtocol::HTTP,
+            port: 3000,
+            url: "localhost".to_string(),
+            api_key: "my_key".to_string(),
+            cert_handling: CertificateHandling::CertProvided(
+                "./src/cert/overkiz-root-ca-2048.crt".to_string(),
+            ),
+        })
     }
 
     #[rstest]
