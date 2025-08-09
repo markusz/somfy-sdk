@@ -40,7 +40,9 @@ fn parse_valid_body_correctly() {
     let parsed = GetVersionCommandResponse::from_response_body(body)
         .expect("should parse valid body correctly");
 
-    let ApiResponse::GetVersion(payload) = parsed;
+    let ApiResponse::GetVersion(payload) = parsed else {
+        panic!("should have correct type")
+    };
     assert_eq!(
         payload,
         GetVersionCommandResponse {

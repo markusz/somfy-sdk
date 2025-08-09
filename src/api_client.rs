@@ -1,10 +1,12 @@
+use crate::commands::get_setup_gateways::{GetGatewaysCommand, GetGatewaysResponse};
 use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
 use crate::commands::traits::SomfyApiRequestResponse;
 use crate::commands::traits::{RequestData, SomfyApiRequestCommand};
 use crate::config::tls_cert::TlsCertHandler;
 use crate::err::http::RequestError;
-use log::debug;
-use reqwest::{Certificate, ClientBuilder};
+use log::{debug, info};
+use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::{Certificate, ClientBuilder, StatusCode, header};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum HttpProtocol {
@@ -29,6 +31,7 @@ pub struct ApiClientConfig {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ApiRequest {
     GetVersion(GetVersionCommand),
+    GetGateways(GetGatewaysCommand),
     // RegisterEventListener,
     // FetchEvents,
     // UnregisterEventListener
@@ -38,6 +41,7 @@ impl From<ApiRequest> for RequestData {
     fn from(value: ApiRequest) -> Self {
         match value {
             ApiRequest::GetVersion(c) => c.to_request(),
+            ApiRequest::GetGateways(c) => c.to_request(),
         }
     }
 }
@@ -46,6 +50,7 @@ impl From<&ApiRequest> for RequestData {
     fn from(value: &ApiRequest) -> Self {
         match value {
             ApiRequest::GetVersion(c) => c.to_request(),
+            ApiRequest::GetGateways(c) => c.to_request(),
         }
     }
 }
@@ -53,6 +58,7 @@ impl From<&ApiRequest> for RequestData {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ApiResponse {
     GetVersion(GetVersionCommandResponse),
+    GetGateways(GetGatewaysResponse),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiClient {
@@ -78,18 +84,6 @@ impl ApiClient {
     }
 
     pub async fn execute(&self, command: ApiRequest) -> Result<ApiResponse, RequestError> {
-        let request_data: RequestData = (&command).into();
-        let protocol = match self.config.protocol {
-            HttpProtocol::HTTP => "http",
-            HttpProtocol::HTTPS => "https",
-        };
-
-        let path = format!(
-            "{}://{}:{}{}",
-            protocol, self.config.url, self.config.port, request_data.path
-        );
-        let mut client_builder = ClientBuilder::new();
-
         let cert: Certificate = match &self.config.cert_handling {
             CertificateHandling::CertProvided(path) => {
                 let crt = std::fs::read(path).map_err(|_| RequestError::CertError)?;
@@ -100,20 +94,60 @@ impl ApiClient {
                 .map_err(|_| RequestError::CertError)?,
         };
 
-        client_builder = client_builder.add_root_certificate(cert);
+        let headers = self.generate_default_headers()?;
 
-        let client = client_builder.build()?;
-        let body = client.get(path).send().await?.text().await?;
+        let client = ClientBuilder::new()
+            .add_root_certificate(cert)
+            .default_headers(headers)
+            .build()?;
 
-        Self::map_request_to_response(command, &body)
+        let request_data: RequestData = (&command).into();
+        let path = self.generate_base_url(request_data);
+
+        let response = client.get(path).send().await?;
+
+        match response.status() {
+            code if code >= StatusCode::OK && code <= StatusCode::IM_USED => {
+                let body = response.text().await?;
+                Self::map_request_to_response(command, &body)
+            }
+            code if [StatusCode::FORBIDDEN, StatusCode::UNAUTHORIZED].contains(&code) => {
+                Err(RequestError::AuthError)
+            }
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    fn generate_base_url(&self, request_data: RequestData) -> String {
+        let protocol = match self.config.protocol {
+            HttpProtocol::HTTP => "http",
+            HttpProtocol::HTTPS => "https",
+        };
+
+        let path = format!(
+            "{}://{}:{}{}",
+            protocol, self.config.url, self.config.port, request_data.path
+        );
+        path
+    }
+
+    fn generate_default_headers(&self) -> Result<HeaderMap, RequestError> {
+        let mut headers = HeaderMap::new();
+        let bearer_token =
+            HeaderValue::from_str(format!("Bearer {}", self.config.api_key).as_str())
+                .map_err(|_| RequestError::AuthError)?;
+        headers.insert(header::AUTHORIZATION, bearer_token);
+        Ok(headers)
     }
 
     fn map_request_to_response(
         command: ApiRequest,
         body: &str,
     ) -> Result<ApiResponse, RequestError> {
+        info!("{body}");
         match command {
             ApiRequest::GetVersion(_) => GetVersionCommandResponse::from_response_body(body),
+            ApiRequest::GetGateways(_) => GetGatewaysResponse::from_response_body(body),
         }
     }
 
@@ -123,6 +157,17 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetVersion(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn get_gateways(&self) -> Result<GetGatewaysResponse, RequestError> {
+        let command = ApiRequest::GetGateways(GetGatewaysCommand);
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetGateways(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
         }
     }
 }
@@ -184,8 +229,6 @@ mod api_client_tests {
         let response = ApiClient::map_request_to_response(request, valid_body)
             .expect("should return a ApiResponse::GetVersion");
 
-        // let is_right_type = (&response as &dyn Any).is::<ApiResponse::GetVersion(GetVersionCommandResponse)>();
-        // assert!(is_right_type)
         assert!(matches!(response, ApiResponse::GetVersion(_)))
     }
 }
