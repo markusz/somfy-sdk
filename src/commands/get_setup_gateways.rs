@@ -40,7 +40,7 @@ fn parse_valid_body_correctly() {
 			"status": "OK",
 			"protocolVersion": "2025.3.2-7"
 		},
-		"gatewayId": "0812-2424-9999"
+		"gatewayId": "0000-1111-2222"
 	}
     ]"#;
     let parsed =
@@ -52,7 +52,7 @@ fn parse_valid_body_correctly() {
     assert_eq!(
         payload,
         vec![Gateway {
-            gateway_id: "0812-2424-9999".to_string(),
+            gateway_id: "0000-1111-2222".to_string(),
             connectivity: GatewayConnectivity {
                 status: "OK".to_string(),
                 protocol_version: "2025.3.2-7".to_string()
