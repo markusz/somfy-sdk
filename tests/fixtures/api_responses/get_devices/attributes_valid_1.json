@@ -1,0 +1,24 @@
+{
+  "value": [
+    "dead_man_down",
+    "dead_man_impulse_down",
+    "dead_man_impulse_up",
+    "dead_man_stop",
+    "dead_man_up",
+    "delete_my_position",
+    "double_power_cut",
+    "eject_from_setting_mode",
+    "enter_auxiliary_parameter_settings_mode",
+    "enter_settings_mode",
+    "reset_actuator",
+    "save_evb_tilting_travel",
+    "save_flat_slats_position",
+    "save_lower_end_limit",
+    "save_my_position",
+    "save_settings",
+    "save_upper_end_limit",
+    "stop_after_save_limit"
+  ],
+  "name": "core:SupportedManufacturerSettingsCommands",
+  "type": 10
+}

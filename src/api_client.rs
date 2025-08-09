@@ -1,10 +1,11 @@
+use crate::commands::get_devices::{GetDevicesCommand, GetDevicesResponse};
 use crate::commands::get_setup_gateways::{GetGatewaysCommand, GetGatewaysResponse};
 use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
 use crate::commands::traits::SomfyApiRequestResponse;
 use crate::commands::traits::{RequestData, SomfyApiRequestCommand};
 use crate::config::tls_cert::TlsCertHandler;
 use crate::err::http::RequestError;
-use log::{debug, info};
+use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Certificate, ClientBuilder, StatusCode, header};
 
@@ -32,9 +33,9 @@ pub struct ApiClientConfig {
 pub enum ApiRequest {
     GetVersion(GetVersionCommand),
     GetGateways(GetGatewaysCommand),
-    // RegisterEventListener,
-    // FetchEvents,
-    // UnregisterEventListener
+    GetDevices(GetDevicesCommand), // RegisterEventListener,
+                                   // FetchEvents,
+                                   // UnregisterEventListener
 }
 
 impl From<ApiRequest> for RequestData {
@@ -42,6 +43,7 @@ impl From<ApiRequest> for RequestData {
         match value {
             ApiRequest::GetVersion(c) => c.to_request(),
             ApiRequest::GetGateways(c) => c.to_request(),
+            ApiRequest::GetDevices(c) => c.to_request(),
         }
     }
 }
@@ -51,6 +53,7 @@ impl From<&ApiRequest> for RequestData {
         match value {
             ApiRequest::GetVersion(c) => c.to_request(),
             ApiRequest::GetGateways(c) => c.to_request(),
+            ApiRequest::GetDevices(c) => c.to_request(),
         }
     }
 }
@@ -59,6 +62,7 @@ impl From<&ApiRequest> for RequestData {
 pub enum ApiResponse {
     GetVersion(GetVersionCommandResponse),
     GetGateways(GetGatewaysResponse),
+    GetDevices(GetDevicesResponse),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiClient {
@@ -144,10 +148,10 @@ impl ApiClient {
         command: ApiRequest,
         body: &str,
     ) -> Result<ApiResponse, RequestError> {
-        info!("{body}");
         match command {
             ApiRequest::GetVersion(_) => GetVersionCommandResponse::from_response_body(body),
             ApiRequest::GetGateways(_) => GetGatewaysResponse::from_response_body(body),
+            ApiRequest::GetDevices(_) => GetDevicesResponse::from_response_body(body),
         }
     }
 
@@ -167,6 +171,16 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetGateways(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn get_devices(&self) -> Result<GetDevicesResponse, RequestError> {
+        let command = ApiRequest::GetDevices(GetDevicesCommand);
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetDevices(res) => Ok(res),
             _ => Err(RequestError::ServerError),
         }
     }

@@ -1,0 +1,69 @@
+{
+  "value": [
+    {
+      "params": {
+        "duration": {}
+      },
+      "procedureName": "dead_man_down"
+    },
+    {
+      "procedureName": "dead_man_impulse_down"
+    },
+    {
+      "procedureName": "dead_man_impulse_up"
+    },
+    {
+      "procedureName": "dead_man_stop"
+    },
+    {
+      "params": {
+        "duration": {}
+      },
+      "procedureName": "dead_man_up"
+    },
+    {
+      "procedureName": "delete_my_position"
+    },
+    {
+      "procedureName": "double_power_cut"
+    },
+    {
+      "procedureName": "eject_from_setting_mode"
+    },
+    {
+      "procedureName": "enter_auxiliary_parameter_settings_mode"
+    },
+    {
+      "procedureName": "enter_settings_mode"
+    },
+    {
+      "procedureName": "remove_broken_local_sensors"
+    },
+    {
+      "procedureName": "reset_actuator"
+    },
+    {
+      "procedureName": "save_evb_tilting_travel"
+    },
+    {
+      "procedureName": "save_flat_slats_position"
+    },
+    {
+      "procedureName": "save_lower_end_limit"
+    },
+    {
+      "procedureName": "save_my_position"
+    },
+    {
+      "procedureName": "save_settings"
+    },
+    {
+      "procedureName": "save_upper_end_limit"
+    },
+    {
+      "procedureName": "stop_after_save_limit"
+    }
+  ],
+  "name": "core:SupportedManufacturerProcedures",
+  "type": 10
+}
