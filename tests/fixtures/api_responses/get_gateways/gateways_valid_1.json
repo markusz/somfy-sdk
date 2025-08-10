@@ -1,0 +1,9 @@
+[
+  {
+    "connectivity": {
+      "status": "OK",
+      "protocolVersion": "2025.3.2-7"
+    },
+    "gatewayId": "0000-1111-2222"
+  }
+]

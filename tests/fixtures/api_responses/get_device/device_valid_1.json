@@ -1,0 +1,20 @@
+{
+  "deviceURL": "io://0812-2424-9999/8458664",
+  "type": 5,
+  "states": [],
+  "synced": true,
+  "subsystemId": 0,
+  "enabled": true,
+  "attributes": [],
+  "available": true,
+  "definition": {
+    "uiClass": "ProtocolGateway",
+    "attributes": [],
+    "type": "PROTOCOL_GATEWAY",
+    "states": [],
+    "commands": [],
+    "widgetName": "IOStack"
+  },
+  "controllableName": "io:StackComponent",
+  "label": "IO (8458664)"
+}

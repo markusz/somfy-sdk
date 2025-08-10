@@ -1,3 +1,4 @@
+use crate::commands::get_device::{GetDeviceCommand, GetDeviceResponse};
 use crate::commands::get_devices::{GetDevicesCommand, GetDevicesResponse};
 use crate::commands::get_setup_gateways::{GetGatewaysCommand, GetGatewaysResponse};
 use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
@@ -33,9 +34,8 @@ pub struct ApiClientConfig {
 pub enum ApiRequest {
     GetVersion(GetVersionCommand),
     GetGateways(GetGatewaysCommand),
-    GetDevices(GetDevicesCommand), // RegisterEventListener,
-                                   // FetchEvents,
-                                   // UnregisterEventListener
+    GetDevices(GetDevicesCommand),
+    GetDevice(GetDeviceCommand),
 }
 
 impl From<ApiRequest> for RequestData {
@@ -44,6 +44,7 @@ impl From<ApiRequest> for RequestData {
             ApiRequest::GetVersion(c) => c.to_request(),
             ApiRequest::GetGateways(c) => c.to_request(),
             ApiRequest::GetDevices(c) => c.to_request(),
+            ApiRequest::GetDevice(c) => c.to_request(),
         }
     }
 }
@@ -54,6 +55,7 @@ impl From<&ApiRequest> for RequestData {
             ApiRequest::GetVersion(c) => c.to_request(),
             ApiRequest::GetGateways(c) => c.to_request(),
             ApiRequest::GetDevices(c) => c.to_request(),
+            ApiRequest::GetDevice(c) => c.to_request(),
         }
     }
 }
@@ -63,6 +65,7 @@ pub enum ApiResponse {
     GetVersion(GetVersionCommandResponse),
     GetGateways(GetGatewaysResponse),
     GetDevices(GetDevicesResponse),
+    GetDevice(GetDeviceResponse),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiClient {
@@ -152,6 +155,7 @@ impl ApiClient {
             ApiRequest::GetVersion(_) => GetVersionCommandResponse::from_response_body(body),
             ApiRequest::GetGateways(_) => GetGatewaysResponse::from_response_body(body),
             ApiRequest::GetDevices(_) => GetDevicesResponse::from_response_body(body),
+            ApiRequest::GetDevice(_) => GetDeviceResponse::from_response_body(body),
         }
     }
 
@@ -184,6 +188,18 @@ impl ApiClient {
             _ => Err(RequestError::ServerError),
         }
     }
+
+    pub async fn get_device(&self, device_url: &str) -> Result<GetDeviceResponse, RequestError> {
+        let command = ApiRequest::GetDevice(GetDeviceCommand {
+            device_url: device_url.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetDevice(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -192,8 +208,12 @@ mod api_client_tests {
         ApiClient, ApiClientConfig, ApiRequest, ApiResponse, CertificateHandling, DEFAULT_PORT,
         HttpProtocol,
     };
+    use crate::commands::get_device::GetDeviceCommand;
+    use crate::commands::get_devices::GetDevicesCommand;
+    use crate::commands::get_setup_gateways::GetGatewaysCommand;
     use crate::commands::get_version::GetVersionCommand;
     use rstest::*;
+    use std::path::PathBuf;
 
     #[fixture]
     fn api_client() -> ApiClient {
@@ -236,13 +256,55 @@ mod api_client_tests {
     }
 
     #[tokio::test]
-    async fn responds_with_correct_type() {
-        // Body parsing is tested only as a side_effect, refer to respective command struct for primary testing
-        let valid_body = r#"{ "protocolVersion": "2022.1.3-1" }"#;
-        let request = ApiRequest::GetVersion(GetVersionCommand);
-        let response = ApiClient::map_request_to_response(request, valid_body)
-            .expect("should return a ApiResponse::GetVersion");
+    async fn type_mapping_correct() {
+        fn payload_to_response(
+            api_request: ApiRequest,
+            request_type: &str,
+            filename: &str,
+        ) -> ApiResponse {
+            let mut path = PathBuf::new();
+            path.push(".");
+            path.push("tests");
+            path.push("fixtures");
+            path.push("api_responses");
+            path.push(request_type);
+            path.push(filename);
 
-        assert!(matches!(response, ApiResponse::GetVersion(_)))
+            let json_str = std::fs::read_to_string(&path).expect("should have fixture");
+
+            ApiClient::map_request_to_response(api_request, json_str.as_str())
+                .expect("should return a ApiResponse")
+        }
+        // Body parsing is tested only as a side_effect, refer to respective command struct for primary testing
+
+        let version_resp = payload_to_response(
+            ApiRequest::GetVersion(GetVersionCommand),
+            "get_version",
+            "version_valid_1.json",
+        );
+        assert!(matches!(version_resp, ApiResponse::GetVersion(_)));
+
+        let devices_resp = payload_to_response(
+            ApiRequest::GetDevices(GetDevicesCommand),
+            "get_devices",
+            "devices_valid_1.json",
+        );
+        assert!(matches!(devices_resp, ApiResponse::GetDevices(_)));
+
+        let device_resp = payload_to_response(
+            ApiRequest::GetDevice(GetDeviceCommand {
+                device_url: "doesnotmatter".to_string(),
+            }),
+            "get_device",
+            "device_valid_1.json",
+        );
+        assert!(matches!(device_resp, ApiResponse::GetDevice(_)));
+
+        let gateway_resp = payload_to_response(
+            ApiRequest::GetGateways(GetGatewaysCommand),
+            "get_gateways",
+            "gateways_valid_1.json",
+        );
+        assert!(matches!(gateway_resp, ApiResponse::GetGateways(_)));
     }
 }

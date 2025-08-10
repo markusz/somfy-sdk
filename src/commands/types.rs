@@ -134,7 +134,7 @@ mod device_json_parser {
         path.push("tests");
         path.push("fixtures");
         path.push("api_responses");
-        path.push("get_devices");
+        path.push("get_device");
         path.push(name);
 
         std::fs::read_to_string(&path).expect("should have fixture")
@@ -142,7 +142,7 @@ mod device_json_parser {
 
     #[test]
     fn valid_minimal_device_json() {
-        let str = load_json("devices_valid_1.json");
+        let str = load_json("device_valid_1.json");
         let parsed: Device = serde_json::from_str(&str)
             .expect("should parse DeviceAttribute with value: string[] correctly");
         assert_eq!(parsed.controllable_name, "io:StackComponent")
