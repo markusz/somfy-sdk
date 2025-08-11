@@ -7,7 +7,11 @@ pub(crate) mod config {
 }
 pub mod commands {
     pub mod get_device;
+    pub mod get_device_state;
+    pub mod get_device_states;
     pub mod get_devices;
+    pub mod get_devices_by_controllable;
+    pub mod get_setup;
     pub mod get_setup_gateways;
     pub mod get_version;
     pub mod traits;

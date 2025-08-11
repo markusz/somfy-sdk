@@ -5,15 +5,15 @@ use std::fmt::{Debug, Display, Formatter};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GatewayConnectivity {
-    pub(crate) status: String,
-    pub(crate) protocol_version: String,
+    pub status: String,
+    pub protocol_version: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Gateway {
-    pub(crate) gateway_id: String,
-    pub(crate) connectivity: GatewayConnectivity,
+    pub gateway_id: String,
+    pub connectivity: GatewayConnectivity,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -59,10 +59,10 @@ pub struct DeviceAttribute {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceState {
-    value: DeviceStateValue,
-    name: String,
+    pub value: DeviceStateValue,
+    pub name: String,
     #[serde(rename = "type")]
-    state_type: i64,
+    pub state_type: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -100,17 +100,24 @@ pub struct DeviceDefinition {
 #[serde(rename_all = "camelCase")]
 pub struct Device {
     #[serde(rename = "deviceURL")]
-    device_url: String,
-    label: String,
-    controllable_name: String,
-    subsystem_id: i64,
+    pub device_url: String,
+    pub label: String,
+    pub controllable_name: String,
+    pub subsystem_id: i64,
     #[serde(rename = "type")]
-    device_type: i64,
-    available: bool,
-    synced: bool,
-    enabled: bool,
-    states: Vec<DeviceState>,
-    attributes: Vec<DeviceAttribute>,
+    pub device_type: i64,
+    pub available: bool,
+    pub synced: bool,
+    pub enabled: bool,
+    pub states: Vec<DeviceState>,
+    pub attributes: Vec<DeviceAttribute>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Setup {
+    pub gateways: Vec<Gateway>,
+    pub devices: Vec<Device>,
 }
 
 impl Display for Device {

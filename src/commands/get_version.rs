@@ -27,8 +27,7 @@ pub struct GetVersionCommandResponse {
 
 impl SomfyApiRequestResponse for GetVersionCommandResponse {
     fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetVersionCommandResponse =
-            serde_json::from_str(body).map_err(|_| RequestError::InvalidBody)?;
+        let resp: GetVersionCommandResponse = serde_json::from_str(body)?;
         Ok(ApiResponse::GetVersion(resp))
     }
 }

@@ -2,7 +2,6 @@ use crate::api_client::ApiResponse;
 use crate::commands::traits::{RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse};
 use crate::commands::types::Device;
 use crate::err::http::RequestError;
-use log::error;
 use reqwest::Body;
 use reqwest::header::HeaderMap;
 use std::collections::HashMap;
@@ -33,13 +32,8 @@ pub type GetDeviceResponse = Device;
 
 impl SomfyApiRequestResponse for GetDeviceResponse {
     fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp = serde_json::from_str(body);
+        let resp = serde_json::from_str(body)?;
 
-        if let Err(e) = resp {
-            error!("{e:?}");
-            Err(RequestError::InvalidBody)
-        } else {
-            Ok(ApiResponse::GetDevice(resp.unwrap()))
-        }
+        Ok(ApiResponse::GetDevice(resp))
     }
 }

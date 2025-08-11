@@ -1,0 +1,12 @@
+[
+    {
+        "name": "core:StatusState",
+        "type": 3,
+        "value": "available"
+    },
+    {
+        "name": "core:MovingState",
+        "type": 6,
+        "value": false
+    }
+]

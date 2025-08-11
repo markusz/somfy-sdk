@@ -1,4 +1,5 @@
 use reqwest::{Error as ReqwestError, StatusCode};
+use serde_json::Error as SerdeError;
 
 // Errors related to executing the HTTP request
 #[derive(Debug, Clone, PartialEq)]
@@ -10,6 +11,12 @@ pub enum RequestError {
     ServerError,
     InvalidBody,
     CertError,
+}
+
+impl From<SerdeError> for RequestError {
+    fn from(_value: SerdeError) -> Self {
+        RequestError::InvalidBody
+    }
 }
 
 impl From<ReqwestError> for RequestError {

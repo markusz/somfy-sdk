@@ -1,5 +1,11 @@
 use crate::commands::get_device::{GetDeviceCommand, GetDeviceResponse};
+use crate::commands::get_device_state::{GetDeviceStateCommand, GetDeviceStateResponse};
+use crate::commands::get_device_states::{GetDeviceStatesCommand, GetDeviceStatesResponse};
 use crate::commands::get_devices::{GetDevicesCommand, GetDevicesResponse};
+use crate::commands::get_devices_by_controllable::{
+    GetDevicesByControllableCommand, GetDevicesByControllableResponse,
+};
+use crate::commands::get_setup::{GetSetupCommand, GetSetupResponse};
 use crate::commands::get_setup_gateways::{GetGatewaysCommand, GetGatewaysResponse};
 use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
 use crate::commands::traits::SomfyApiRequestResponse;
@@ -36,6 +42,10 @@ pub enum ApiRequest {
     GetGateways(GetGatewaysCommand),
     GetDevices(GetDevicesCommand),
     GetDevice(GetDeviceCommand),
+    GetSetup(GetSetupCommand),
+    GetDeviceStates(GetDeviceStatesCommand),
+    GetDeviceState(GetDeviceStateCommand),
+    GetDevicesByControllable(GetDevicesByControllableCommand),
 }
 
 impl From<ApiRequest> for RequestData {
@@ -45,6 +55,10 @@ impl From<ApiRequest> for RequestData {
             ApiRequest::GetGateways(c) => c.to_request(),
             ApiRequest::GetDevices(c) => c.to_request(),
             ApiRequest::GetDevice(c) => c.to_request(),
+            ApiRequest::GetSetup(c) => c.to_request(),
+            ApiRequest::GetDeviceStates(c) => c.to_request(),
+            ApiRequest::GetDeviceState(c) => c.to_request(),
+            ApiRequest::GetDevicesByControllable(c) => c.to_request(),
         }
     }
 }
@@ -56,6 +70,10 @@ impl From<&ApiRequest> for RequestData {
             ApiRequest::GetGateways(c) => c.to_request(),
             ApiRequest::GetDevices(c) => c.to_request(),
             ApiRequest::GetDevice(c) => c.to_request(),
+            ApiRequest::GetSetup(c) => c.to_request(),
+            ApiRequest::GetDeviceStates(c) => c.to_request(),
+            ApiRequest::GetDeviceState(c) => c.to_request(),
+            ApiRequest::GetDevicesByControllable(c) => c.to_request(),
         }
     }
 }
@@ -66,6 +84,10 @@ pub enum ApiResponse {
     GetGateways(GetGatewaysResponse),
     GetDevices(GetDevicesResponse),
     GetDevice(GetDeviceResponse),
+    GetSetup(GetSetupResponse),
+    GetDeviceStates(GetDeviceStatesResponse),
+    GetDeviceState(GetDeviceStateResponse),
+    GetDevicesByControllable(GetDevicesByControllableResponse),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiClient {
@@ -156,6 +178,12 @@ impl ApiClient {
             ApiRequest::GetGateways(_) => GetGatewaysResponse::from_response_body(body),
             ApiRequest::GetDevices(_) => GetDevicesResponse::from_response_body(body),
             ApiRequest::GetDevice(_) => GetDeviceResponse::from_response_body(body),
+            ApiRequest::GetSetup(_) => GetSetupResponse::from_response_body(body),
+            ApiRequest::GetDeviceStates(_) => GetDeviceStatesResponse::from_response_body(body),
+            ApiRequest::GetDeviceState(_) => GetDeviceStateResponse::from_response_body(body),
+            ApiRequest::GetDevicesByControllable(_) => {
+                GetDevicesByControllableResponse::from_response_body(body)
+            }
         }
     }
 
@@ -200,6 +228,63 @@ impl ApiClient {
             _ => Err(RequestError::ServerError),
         }
     }
+
+    pub async fn get_setup(&self) -> Result<GetSetupResponse, RequestError> {
+        let command = ApiRequest::GetSetup(GetSetupCommand);
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetSetup(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn get_device_states(
+        &self,
+        device_url: &str,
+    ) -> Result<GetDeviceStatesResponse, RequestError> {
+        let command = ApiRequest::GetDeviceStates(GetDeviceStatesCommand {
+            device_url: device_url.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetDeviceStates(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn get_device_state(
+        &self,
+        device_url: &str,
+        state_name: &str,
+    ) -> Result<GetDeviceStateResponse, RequestError> {
+        let command = ApiRequest::GetDeviceState(GetDeviceStateCommand {
+            device_url: device_url.to_string(),
+            state_name: state_name.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetDeviceState(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn get_devices_by_controllable(
+        &self,
+        controllable_name: &str,
+    ) -> Result<GetDevicesByControllableResponse, RequestError> {
+        let command = ApiRequest::GetDevicesByControllable(GetDevicesByControllableCommand {
+            controllable_name: controllable_name.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetDevicesByControllable(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -209,7 +294,11 @@ mod api_client_tests {
         HttpProtocol,
     };
     use crate::commands::get_device::GetDeviceCommand;
+    use crate::commands::get_device_state::GetDeviceStateCommand;
+    use crate::commands::get_device_states::GetDeviceStatesCommand;
     use crate::commands::get_devices::GetDevicesCommand;
+    use crate::commands::get_devices_by_controllable::GetDevicesByControllableCommand;
+    use crate::commands::get_setup::GetSetupCommand;
     use crate::commands::get_setup_gateways::GetGatewaysCommand;
     use crate::commands::get_version::GetVersionCommand;
     use rstest::*;
@@ -306,5 +395,46 @@ mod api_client_tests {
             "gateways_valid_1.json",
         );
         assert!(matches!(gateway_resp, ApiResponse::GetGateways(_)));
+
+        let setup_resp = payload_to_response(
+            ApiRequest::GetSetup(GetSetupCommand),
+            "get_setup",
+            "setup_valid_1.json",
+        );
+        assert!(matches!(setup_resp, ApiResponse::GetSetup(_)));
+
+        let device_states_resp = payload_to_response(
+            ApiRequest::GetDeviceStates(GetDeviceStatesCommand {
+                device_url: "doesnotmatter".to_string(),
+            }),
+            "get_device_states",
+            "device_states_valid_1.json",
+        );
+        assert!(matches!(
+            device_states_resp,
+            ApiResponse::GetDeviceStates(_)
+        ));
+
+        let device_state_resp = payload_to_response(
+            ApiRequest::GetDeviceState(GetDeviceStateCommand {
+                device_url: "doesnotmatter".to_string(),
+                state_name: "doesnotmatter".to_string(),
+            }),
+            "get_device_state",
+            "device_state_valid_1.json",
+        );
+        assert!(matches!(device_state_resp, ApiResponse::GetDeviceState(_)));
+
+        let devices_by_controllable_resp = payload_to_response(
+            ApiRequest::GetDevicesByControllable(GetDevicesByControllableCommand {
+                controllable_name: "doesnotmatter".to_string(),
+            }),
+            "get_devices_by_controllable",
+            "devices_by_controllable_valid_1.json",
+        );
+        assert!(matches!(
+            devices_by_controllable_resp,
+            ApiResponse::GetDevicesByControllable(_)
+        ));
     }
 }

@@ -1,0 +1,37 @@
+{
+    "gateways": [
+        {
+            "connectivity": {
+                "status": "OK",
+                "protocolVersion": "2025.3.2-7"
+            },
+            "gatewayId": "0000-1111-2222"
+        }
+    ],
+    "devices": [
+        {
+            "deviceURL": "io://0000-1111-2222/12345678",
+            "label": "Test Device",
+            "controllableName": "io:StackComponent",
+            "subsystemId": 1,
+            "type": 1,
+            "available": true,
+            "synced": true,
+            "enabled": true,
+            "states": [
+                {
+                    "name": "core:StatusState",
+                    "type": 3,
+                    "value": "available"
+                }
+            ],
+            "attributes": [
+                {
+                    "name": "core:FirmwareRevision",
+                    "type": 3,
+                    "value": "1.2.3"
+                }
+            ]
+        }
+    ]
+}

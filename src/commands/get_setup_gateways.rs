@@ -24,8 +24,7 @@ pub type GetGatewaysResponse = Vec<Gateway>;
 
 impl SomfyApiRequestResponse for GetGatewaysResponse {
     fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetGatewaysResponse =
-            serde_json::from_str(body).map_err(|_| RequestError::InvalidBody)?;
+        let resp: GetGatewaysResponse = serde_json::from_str(body)?;
         Ok(ApiResponse::GetGateways(resp))
     }
 }
