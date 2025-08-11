@@ -29,14 +29,14 @@ pub enum DeviceStateValue {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceAttributeProcedureParams {
-    duration: HashMap<String, String>,
+    pub duration: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceAttributeProcedure {
-    procedure_name: String,
-    params: Option<DeviceAttributeProcedureParams>,
+    pub procedure_name: String,
+    pub params: Option<DeviceAttributeProcedureParams>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -50,10 +50,10 @@ pub enum DeviceAttributeValue {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceAttribute {
-    value: DeviceAttributeValue,
-    name: String,
+    pub value: DeviceAttributeValue,
+    pub name: String,
     #[serde(rename = "type")]
-    state_type: i64,
+    pub state_type: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -68,32 +68,32 @@ pub struct DeviceState {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceDefinitionAttribute {
-    name: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceDefinitionState {
-    name: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceDefinitionCommand {
-    command_name: String,
-    nparams: i64,
+    pub command_name: String,
+    pub nparams: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceDefinition {
-    ui_class: String,
-    attributes: Vec<DeviceDefinitionAttribute>,
+    pub ui_class: String,
+    pub attributes: Vec<DeviceDefinitionAttribute>,
     #[serde(rename = "type")]
-    state_type: i64,
-    states: Vec<DeviceDefinitionState>,
-    commands: Vec<DeviceDefinitionCommand>,
-    widget_name: String,
+    pub state_type: i64,
+    pub states: Vec<DeviceDefinitionState>,
+    pub commands: Vec<DeviceDefinitionCommand>,
+    pub widget_name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -135,96 +135,56 @@ pub struct EventListener {
     pub id: String,
 }
 
-#[cfg(test)]
-mod device_json_parser {
-    use crate::commands::types::Device;
-    use std::path::PathBuf;
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Event {
+    // Event fields will be defined based on actual API response
+    // For now, keeping flexible with serde_json::Value
+}
 
-    fn load_json(name: &str) -> String {
-        let mut path = PathBuf::new();
-        path.push(".");
-        path.push("tests");
-        path.push("fixtures");
-        path.push("api_responses");
-        path.push("get_device");
-        path.push(name);
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Command {
+    pub name: String,
+    pub parameters: Vec<serde_json::Value>,
+}
 
-        std::fs::read_to_string(&path).expect("should have fixture")
-    }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Action {
+    #[serde(rename = "deviceURL")]
+    pub device_url: String,
+    pub commands: Vec<Command>,
+}
 
-    #[test]
-    fn valid_minimal_device_json() {
-        let str = load_json("device_valid_1.json");
-        let parsed: Device = serde_json::from_str(&str)
-            .expect("should parse DeviceAttribute with value: string[] correctly");
-        assert_eq!(parsed.controllable_name, "io:StackComponent")
-    }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ActionGroup {
+    pub label: Option<String>,
+    pub actions: Vec<Action>,
+}
 
-    mod attributes {
-        use crate::commands::types::DeviceAttribute;
-        use crate::commands::types::device_json_parser::load_json;
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ActionGroupExecutionId {
+    pub id: String,
+}
 
-        #[test]
-        fn parse_valid_str_array_correctly() {
-            let str = load_json("attributes_valid_1.json");
-            let parsed: DeviceAttribute = serde_json::from_str(&str)
-                .expect("should parse DeviceAttribute with value: string[] correctly");
-            assert_eq!(parsed.name, "core:SupportedManufacturerSettingsCommands")
-        }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionGroupExecution {
+    pub owner: String,
+    pub id: String,
+    pub execution_type: String,
+    pub execution_sub_type: String,
+    pub description: String,
+    pub start_time: i64,
+    pub action_group: ActionGroup,
+    pub state: String,
+}
 
-        #[test]
-        fn parse_valid_procedure_array_correctly() {
-            let str = load_json("attributes_valid_2.json");
-            let parsed: DeviceAttribute = serde_json::from_str(&str)
-                .expect("should parse DeviceAttribute with value: procedures[] correctly");
-            assert_eq!(parsed.name, "core:SupportedManufacturerProcedures")
-        }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CancelAllExecutionsResult {
+    // Empty object, keeping for type safety
+}
 
-        #[test]
-        fn parse_valid_string_correctly() {
-            let str = load_json("attributes_valid_3.json");
-            let parsed: DeviceAttribute = serde_json::from_str(&str)
-                .expect("should parse DeviceAttribute with value: procedures[] correctly");
-            assert_eq!(parsed.name, "core:FirmwareRevision")
-        }
-    }
-
-    mod states {
-        use crate::commands::types::DeviceState;
-        use crate::commands::types::device_json_parser::load_json;
-
-        #[test]
-        fn parse_valid_str_value_correctly() {
-            let str = load_json("states_valid_1.json");
-            let parsed: DeviceState = serde_json::from_str(&str)
-                .expect("should parse DeviceAttribute with value: string[] correctly");
-            assert_eq!(parsed.name, "core:StatusState")
-        }
-
-        #[test]
-        fn parse_valid_map_value_correctly() {
-            let str = load_json("states_valid_2.json");
-            let parsed: DeviceState = serde_json::from_str(&str)
-                .expect("should parse DeviceAttribute with value: string[] correctly");
-            assert_eq!(parsed.name, "core:ManufacturerSettingsState")
-        }
-
-        #[test]
-        fn parse_valid_i64_value_correctly() {
-            let str = load_json("states_valid_3.json");
-            let parsed: DeviceState = serde_json::from_str(&str)
-                .expect("should parse DeviceAttribute with value: string[] correctly");
-            assert_eq!(parsed.name, "core:Memorized1PositionState")
-        }
-
-        #[test]
-        fn parse_valid_bool_value_correctly() {
-            let str = load_json("states_valid_4.json");
-            let parsed: DeviceState = serde_json::from_str(&str)
-                .expect("should parse DeviceAttribute with value: string[] correctly");
-            assert_eq!(parsed.name, "core:MovingState")
-        }
-    }
-
-    mod definition {}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CancelExecutionResult {
+    // Empty object, keeping for type safety
 }

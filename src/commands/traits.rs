@@ -9,6 +9,7 @@ pub enum HttpMethod {
     #[default]
     GET,
     POST,
+    DELETE,
 }
 
 #[derive(Default)]

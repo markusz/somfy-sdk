@@ -1,0 +1,54 @@
+[
+  {
+    "owner": "string",
+    "id": "111",
+    "executionType": "Immediate execution",
+    "executionSubType": "MANUAL_CONTROL",
+    "description": "string",
+    "startTime": 0,
+    "actionGroup": {
+      "label": "string",
+      "actions": [
+        {
+          "commands": [
+            {
+              "type": 0,
+              "name": "string",
+              "parameters": [
+                "string"
+              ]
+            }
+          ],
+          "deviceURL": "string"
+        }
+      ]
+    },
+    "state": "INITIALIZED"
+  },
+  {
+    "owner": "string",
+    "id": "222",
+    "executionType": "Immediate execution",
+    "executionSubType": "MANUAL_CONTROL",
+    "description": "string",
+    "startTime": 0,
+    "actionGroup": {
+      "label": "string",
+      "actions": [
+        {
+          "commands": [
+            {
+              "type": 0,
+              "name": "string",
+              "parameters": [
+                "string"
+              ]
+            }
+          ],
+          "deviceURL": "string"
+        }
+      ]
+    },
+    "state": "INITIALIZED"
+  }
+]

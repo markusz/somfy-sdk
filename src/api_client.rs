@@ -1,3 +1,12 @@
+use crate::commands::cancel_all_executions::{
+    CancelAllExecutionsCommand, CancelAllExecutionsResponse,
+};
+use crate::commands::cancel_execution::{CancelExecutionCommand, CancelExecutionResponse};
+use crate::commands::execute_actions::{ExecuteActionsCommand, ExecuteActionsResponse};
+use crate::commands::fetch_events::{FetchEventsCommand, FetchEventsResponse};
+use crate::commands::get_current_executions::{
+    GetCurrentExecutionsCommand, GetCurrentExecutionsResponse,
+};
 use crate::commands::get_device::{GetDeviceCommand, GetDeviceResponse};
 use crate::commands::get_device_state::{GetDeviceStateCommand, GetDeviceStateResponse};
 use crate::commands::get_device_states::{GetDeviceStatesCommand, GetDeviceStatesResponse};
@@ -5,6 +14,7 @@ use crate::commands::get_devices::{GetDevicesCommand, GetDevicesResponse};
 use crate::commands::get_devices_by_controllable::{
     GetDevicesByControllableCommand, GetDevicesByControllableResponse,
 };
+use crate::commands::get_execution::{GetExecutionCommand, GetExecutionResponse};
 use crate::commands::get_setup::{GetSetupCommand, GetSetupResponse};
 use crate::commands::get_setup_gateways::{GetGatewaysCommand, GetGatewaysResponse};
 use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
@@ -13,6 +23,9 @@ use crate::commands::register_event_listener::{
 };
 use crate::commands::traits::SomfyApiRequestResponse;
 use crate::commands::traits::{HttpMethod, RequestData, SomfyApiRequestCommand};
+use crate::commands::unregister_event_listener::{
+    UnregisterEventListenerCommand, UnregisterEventListenerResponse,
+};
 use crate::config::tls_cert::TlsCertHandler;
 use crate::err::http::RequestError;
 use log::debug;
@@ -50,6 +63,13 @@ pub enum ApiRequest {
     GetDeviceState(GetDeviceStateCommand),
     GetDevicesByControllable(GetDevicesByControllableCommand),
     RegisterEventListener(RegisterEventListenerCommand),
+    FetchEvents(FetchEventsCommand),
+    UnregisterEventListener(UnregisterEventListenerCommand),
+    ExecuteActions(ExecuteActionsCommand),
+    GetCurrentExecutions(GetCurrentExecutionsCommand),
+    GetExecution(GetExecutionCommand),
+    CancelAllExecutions(CancelAllExecutionsCommand),
+    CancelExecution(CancelExecutionCommand),
 }
 
 impl From<ApiRequest> for RequestData {
@@ -64,6 +84,13 @@ impl From<ApiRequest> for RequestData {
             ApiRequest::GetDeviceState(c) => c.to_request(),
             ApiRequest::GetDevicesByControllable(c) => c.to_request(),
             ApiRequest::RegisterEventListener(c) => c.to_request(),
+            ApiRequest::FetchEvents(c) => c.to_request(),
+            ApiRequest::UnregisterEventListener(c) => c.to_request(),
+            ApiRequest::ExecuteActions(c) => c.to_request(),
+            ApiRequest::GetCurrentExecutions(c) => c.to_request(),
+            ApiRequest::GetExecution(c) => c.to_request(),
+            ApiRequest::CancelAllExecutions(c) => c.to_request(),
+            ApiRequest::CancelExecution(c) => c.to_request(),
         }
     }
 }
@@ -80,6 +107,13 @@ impl From<&ApiRequest> for RequestData {
             ApiRequest::GetDeviceState(c) => c.to_request(),
             ApiRequest::GetDevicesByControllable(c) => c.to_request(),
             ApiRequest::RegisterEventListener(c) => c.to_request(),
+            ApiRequest::FetchEvents(c) => c.to_request(),
+            ApiRequest::UnregisterEventListener(c) => c.to_request(),
+            ApiRequest::ExecuteActions(c) => c.to_request(),
+            ApiRequest::GetCurrentExecutions(c) => c.to_request(),
+            ApiRequest::GetExecution(c) => c.to_request(),
+            ApiRequest::CancelAllExecutions(c) => c.to_request(),
+            ApiRequest::CancelExecution(c) => c.to_request(),
         }
     }
 }
@@ -95,6 +129,13 @@ pub enum ApiResponse {
     GetDeviceState(GetDeviceStateResponse),
     GetDevicesByControllable(GetDevicesByControllableResponse),
     RegisterEventListener(RegisterEventListenerResponse),
+    FetchEvents(FetchEventsResponse),
+    UnregisterEventListener(UnregisterEventListenerResponse),
+    ExecuteActions(ExecuteActionsResponse),
+    GetCurrentExecutions(GetCurrentExecutionsResponse),
+    GetExecution(GetExecutionResponse),
+    CancelAllExecutions(CancelAllExecutionsResponse),
+    CancelExecution(CancelExecutionResponse),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiClient {
@@ -152,6 +193,7 @@ impl ApiClient {
                     .send()
                     .await?
             }
+            HttpMethod::DELETE => client.delete(&path).send().await?,
         };
 
         match response.status() {
@@ -206,6 +248,19 @@ impl ApiClient {
             ApiRequest::RegisterEventListener(_) => {
                 RegisterEventListenerResponse::from_response_body(body)
             }
+            ApiRequest::FetchEvents(_) => FetchEventsResponse::from_response_body(body),
+            ApiRequest::UnregisterEventListener(_) => {
+                UnregisterEventListenerResponse::from_response_body(body)
+            }
+            ApiRequest::ExecuteActions(_) => ExecuteActionsResponse::from_response_body(body),
+            ApiRequest::GetCurrentExecutions(_) => {
+                GetCurrentExecutionsResponse::from_response_body(body)
+            }
+            ApiRequest::GetExecution(_) => GetExecutionResponse::from_response_body(body),
+            ApiRequest::CancelAllExecutions(_) => {
+                CancelAllExecutionsResponse::from_response_body(body)
+            }
+            ApiRequest::CancelExecution(_) => CancelExecutionResponse::from_response_body(body),
         }
     }
 
@@ -316,6 +371,101 @@ impl ApiClient {
 
         match res {
             ApiResponse::RegisterEventListener(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn fetch_events(
+        &self,
+        listener_id: &str,
+    ) -> Result<FetchEventsResponse, RequestError> {
+        let command = ApiRequest::FetchEvents(FetchEventsCommand {
+            listener_id: listener_id.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::FetchEvents(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn unregister_event_listener(
+        &self,
+        listener_id: &str,
+    ) -> Result<UnregisterEventListenerResponse, RequestError> {
+        let command = ApiRequest::UnregisterEventListener(UnregisterEventListenerCommand {
+            listener_id: listener_id.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::UnregisterEventListener(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn execute_actions(
+        &self,
+        execute_request: crate::commands::types::ActionGroup,
+    ) -> Result<ExecuteActionsResponse, RequestError> {
+        let command = ApiRequest::ExecuteActions(ExecuteActionsCommand { execute_request });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::ExecuteActions(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn get_current_executions(
+        &self,
+    ) -> Result<GetCurrentExecutionsResponse, RequestError> {
+        let command = ApiRequest::GetCurrentExecutions(GetCurrentExecutionsCommand);
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetCurrentExecutions(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn get_execution(
+        &self,
+        execution_id: &str,
+    ) -> Result<GetExecutionResponse, RequestError> {
+        let command = ApiRequest::GetExecution(GetExecutionCommand {
+            execution_id: execution_id.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::GetExecution(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn cancel_all_executions(&self) -> Result<CancelAllExecutionsResponse, RequestError> {
+        let command = ApiRequest::CancelAllExecutions(CancelAllExecutionsCommand);
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::CancelAllExecutions(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
+
+    pub async fn cancel_execution(
+        &self,
+        execution_id: &str,
+    ) -> Result<CancelExecutionResponse, RequestError> {
+        let command = ApiRequest::CancelExecution(CancelExecutionCommand {
+            execution_id: execution_id.to_string(),
+        });
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::CancelExecution(res) => Ok(res),
             _ => Err(RequestError::ServerError),
         }
     }
