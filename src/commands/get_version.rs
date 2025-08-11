@@ -1,5 +1,7 @@
 use crate::api_client::ApiResponse;
-use crate::commands::traits::{RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse};
+use crate::commands::traits::{
+    HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
+};
 use crate::err::http::RequestError;
 use reqwest::Body;
 use reqwest::header::HeaderMap;
@@ -15,6 +17,7 @@ impl SomfyApiRequestCommand for GetVersionCommand {
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
+            method: HttpMethod::GET,
         }
     }
 }

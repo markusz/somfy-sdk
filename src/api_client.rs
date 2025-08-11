@@ -8,8 +8,11 @@ use crate::commands::get_devices_by_controllable::{
 use crate::commands::get_setup::{GetSetupCommand, GetSetupResponse};
 use crate::commands::get_setup_gateways::{GetGatewaysCommand, GetGatewaysResponse};
 use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
+use crate::commands::register_event_listener::{
+    RegisterEventListenerCommand, RegisterEventListenerResponse,
+};
 use crate::commands::traits::SomfyApiRequestResponse;
-use crate::commands::traits::{RequestData, SomfyApiRequestCommand};
+use crate::commands::traits::{HttpMethod, RequestData, SomfyApiRequestCommand};
 use crate::config::tls_cert::TlsCertHandler;
 use crate::err::http::RequestError;
 use log::debug;
@@ -46,6 +49,7 @@ pub enum ApiRequest {
     GetDeviceStates(GetDeviceStatesCommand),
     GetDeviceState(GetDeviceStateCommand),
     GetDevicesByControllable(GetDevicesByControllableCommand),
+    RegisterEventListener(RegisterEventListenerCommand),
 }
 
 impl From<ApiRequest> for RequestData {
@@ -59,6 +63,7 @@ impl From<ApiRequest> for RequestData {
             ApiRequest::GetDeviceStates(c) => c.to_request(),
             ApiRequest::GetDeviceState(c) => c.to_request(),
             ApiRequest::GetDevicesByControllable(c) => c.to_request(),
+            ApiRequest::RegisterEventListener(c) => c.to_request(),
         }
     }
 }
@@ -74,6 +79,7 @@ impl From<&ApiRequest> for RequestData {
             ApiRequest::GetDeviceStates(c) => c.to_request(),
             ApiRequest::GetDeviceState(c) => c.to_request(),
             ApiRequest::GetDevicesByControllable(c) => c.to_request(),
+            ApiRequest::RegisterEventListener(c) => c.to_request(),
         }
     }
 }
@@ -88,6 +94,7 @@ pub enum ApiResponse {
     GetDeviceStates(GetDeviceStatesResponse),
     GetDeviceState(GetDeviceStateResponse),
     GetDevicesByControllable(GetDevicesByControllableResponse),
+    RegisterEventListener(RegisterEventListenerResponse),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApiClient {
@@ -131,9 +138,21 @@ impl ApiClient {
             .build()?;
 
         let request_data: RequestData = (&command).into();
-        let path = self.generate_base_url(request_data);
+        let path = self.generate_base_url(&request_data);
 
-        let response = client.get(path).send().await?;
+        let response = match request_data.method {
+            HttpMethod::GET => client.get(&path).send().await?,
+            HttpMethod::POST => {
+                let content_len = request_data.get_content_length();
+
+                client
+                    .post(&path)
+                    .body(request_data.body)
+                    .header("content-length", content_len)
+                    .send()
+                    .await?
+            }
+        };
 
         match response.status() {
             code if code >= StatusCode::OK && code <= StatusCode::IM_USED => {
@@ -147,7 +166,7 @@ impl ApiClient {
         }
     }
 
-    fn generate_base_url(&self, request_data: RequestData) -> String {
+    fn generate_base_url(&self, request_data: &RequestData) -> String {
         let protocol = match self.config.protocol {
             HttpProtocol::HTTP => "http",
             HttpProtocol::HTTPS => "https",
@@ -183,6 +202,9 @@ impl ApiClient {
             ApiRequest::GetDeviceState(_) => GetDeviceStateResponse::from_response_body(body),
             ApiRequest::GetDevicesByControllable(_) => {
                 GetDevicesByControllableResponse::from_response_body(body)
+            }
+            ApiRequest::RegisterEventListener(_) => {
+                RegisterEventListenerResponse::from_response_body(body)
             }
         }
     }
@@ -285,6 +307,18 @@ impl ApiClient {
             _ => Err(RequestError::ServerError),
         }
     }
+
+    pub async fn register_event_listener(
+        &self,
+    ) -> Result<RegisterEventListenerResponse, RequestError> {
+        let command = ApiRequest::RegisterEventListener(RegisterEventListenerCommand);
+        let res = self.execute(command).await?;
+
+        match res {
+            ApiResponse::RegisterEventListener(res) => Ok(res),
+            _ => Err(RequestError::ServerError),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -301,6 +335,7 @@ mod api_client_tests {
     use crate::commands::get_setup::GetSetupCommand;
     use crate::commands::get_setup_gateways::GetGatewaysCommand;
     use crate::commands::get_version::GetVersionCommand;
+    use crate::commands::register_event_listener::RegisterEventListenerCommand;
     use rstest::*;
     use std::path::PathBuf;
 
@@ -435,6 +470,16 @@ mod api_client_tests {
         assert!(matches!(
             devices_by_controllable_resp,
             ApiResponse::GetDevicesByControllable(_)
+        ));
+
+        let register_event_listener_resp = payload_to_response(
+            ApiRequest::RegisterEventListener(RegisterEventListenerCommand),
+            "register_event_listener",
+            "event_listener_valid_1.json",
+        );
+        assert!(matches!(
+            register_event_listener_resp,
+            ApiResponse::RegisterEventListener(_)
         ));
     }
 }

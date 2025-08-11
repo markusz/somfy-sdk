@@ -1,5 +1,7 @@
 use crate::api_client::ApiResponse;
-use crate::commands::traits::{RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse};
+use crate::commands::traits::{
+    HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
+};
 use crate::commands::types::Device;
 use crate::err::http::RequestError;
 use reqwest::Body;
@@ -13,6 +15,7 @@ impl SomfyApiRequestCommand for GetDevicesCommand {
     fn to_request(&self) -> RequestData {
         RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/setup/devices".to_string(),
+            method: HttpMethod::GET,
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),

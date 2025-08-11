@@ -130,6 +130,11 @@ impl Display for Device {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EventListener {
+    pub id: String,
+}
+
 #[cfg(test)]
 mod device_json_parser {
     use crate::commands::types::Device;
