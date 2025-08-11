@@ -2,7 +2,7 @@ use crate::commands::cancel_all_executions::{
     CancelAllExecutionsCommand, CancelAllExecutionsResponse,
 };
 use crate::commands::cancel_execution::{CancelExecutionCommand, CancelExecutionResponse};
-use crate::commands::execute_actions::{ExecuteActionsCommand, ExecuteActionsResponse};
+use crate::commands::execute_action_group::{ExecuteActionGroupCommand, ExecuteActionGroupResponse};
 use crate::commands::fetch_events::{FetchEventsCommand, FetchEventsResponse};
 use crate::commands::get_current_executions::{
     GetCurrentExecutionsCommand, GetCurrentExecutionsResponse,
@@ -65,7 +65,7 @@ pub enum ApiRequest {
     RegisterEventListener(RegisterEventListenerCommand),
     FetchEvents(FetchEventsCommand),
     UnregisterEventListener(UnregisterEventListenerCommand),
-    ExecuteActions(ExecuteActionsCommand),
+    ExecuteActions(ExecuteActionGroupCommand),
     GetCurrentExecutions(GetCurrentExecutionsCommand),
     GetExecution(GetExecutionCommand),
     CancelAllExecutions(CancelAllExecutionsCommand),
@@ -131,7 +131,7 @@ pub enum ApiResponse {
     RegisterEventListener(RegisterEventListenerResponse),
     FetchEvents(FetchEventsResponse),
     UnregisterEventListener(UnregisterEventListenerResponse),
-    ExecuteActions(ExecuteActionsResponse),
+    ExecuteActions(ExecuteActionGroupResponse),
     GetCurrentExecutions(GetCurrentExecutionsResponse),
     GetExecution(GetExecutionResponse),
     CancelAllExecutions(CancelAllExecutionsResponse),
@@ -252,7 +252,7 @@ impl ApiClient {
             ApiRequest::UnregisterEventListener(_) => {
                 UnregisterEventListenerResponse::from_response_body(body)
             }
-            ApiRequest::ExecuteActions(_) => ExecuteActionsResponse::from_response_body(body),
+            ApiRequest::ExecuteActions(_) => ExecuteActionGroupResponse::from_response_body(body),
             ApiRequest::GetCurrentExecutions(_) => {
                 GetCurrentExecutionsResponse::from_response_body(body)
             }
@@ -408,8 +408,8 @@ impl ApiClient {
     pub async fn execute_actions(
         &self,
         execute_request: crate::commands::types::ActionGroup,
-    ) -> Result<ExecuteActionsResponse, RequestError> {
-        let command = ApiRequest::ExecuteActions(ExecuteActionsCommand { execute_request });
+    ) -> Result<ExecuteActionGroupResponse, RequestError> {
+        let command = ApiRequest::ExecuteActions(ExecuteActionGroupCommand { action_group: execute_request });
         let res = self.execute(command).await?;
 
         match res {

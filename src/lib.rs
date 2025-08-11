@@ -8,7 +8,7 @@ pub(crate) mod config {
 pub mod commands {
     pub mod cancel_all_executions;
     pub mod cancel_execution;
-    pub mod execute_actions;
+    pub mod execute_action_group;
     pub mod fetch_events;
     pub mod get_current_executions;
     pub mod get_device;

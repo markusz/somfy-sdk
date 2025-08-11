@@ -9,13 +9,13 @@ use reqwest::header::HeaderMap;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ExecuteActionsCommand {
-    pub execute_request: ActionGroup,
+pub struct ExecuteActionGroupCommand {
+    pub action_group: ActionGroup,
 }
 
-impl SomfyApiRequestCommand for ExecuteActionsCommand {
+impl SomfyApiRequestCommand for ExecuteActionGroupCommand {
     fn to_request(&self) -> RequestData {
-        let body_json = serde_json::to_string(&self.execute_request).unwrap_or_default();
+        let body_json = serde_json::to_string(&self.action_group).unwrap_or_default();
 
         let mut headers = HeaderMap::new();
         headers.insert("content-type", "application/json".parse().unwrap());
@@ -30,11 +30,11 @@ impl SomfyApiRequestCommand for ExecuteActionsCommand {
     }
 }
 
-pub type ExecuteActionsResponse = ActionGroupExecutionId;
+pub type ExecuteActionGroupResponse = ActionGroupExecutionId;
 
-impl SomfyApiRequestResponse for ExecuteActionsResponse {
+impl SomfyApiRequestResponse for ExecuteActionGroupResponse {
     fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: ExecuteActionsResponse = serde_json::from_str(body)?;
+        let resp: ExecuteActionGroupResponse = serde_json::from_str(body)?;
         Ok(ApiResponse::ExecuteActions(resp))
     }
 }
@@ -45,7 +45,7 @@ fn parse_valid_body_correctly() {
     let body = r#"{
         "id": "exec-12345678-1234-5678-9012-123456789012"
     }"#;
-    let parsed = ExecuteActionsResponse::from_response_body(body)
+    let parsed = ExecuteActionGroupResponse::from_response_body(body)
         .expect("should parse valid body correctly");
 
     let ApiResponse::ExecuteActions(payload) = parsed else {
@@ -70,7 +70,7 @@ fn generates_correct_request_path() {
         }],
     };
 
-    let command = ExecuteActionsCommand { execute_request };
+    let command = ExecuteActionGroupCommand { action_group: execute_request };
     let request_data = command.to_request();
     assert_eq!(
         request_data.path,
@@ -94,7 +94,7 @@ fn includes_json_content_type_header() {
         }],
     };
 
-    let command = ExecuteActionsCommand { execute_request };
+    let command = ExecuteActionGroupCommand { action_group: execute_request };
     let request_data = command.to_request();
 
     let content_type = request_data.header_map.get("content-type");
