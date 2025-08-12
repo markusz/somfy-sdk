@@ -1,3 +1,18 @@
 {
-  "/enduser-mobile-web/1/enduserAPI/apiVersion": "/apiVersion"
+  "/enduser-mobile-web/1/enduserAPI/apiVersion": "/GET_apiVersion",
+  "/enduser-mobile-web/1/enduserAPI/setup/gateways": "/GET_gateways",  
+  "/enduser-mobile-web/1/enduserAPI/setup": "/GET_setup",
+  "/enduser-mobile-web/1/enduserAPI/setup/devices": "/GET_devices",
+  "/enduser-mobile-web/1/enduserAPI/setup/devices/d123": "/GET_device",
+  "/enduser-mobile-web/1/enduserAPI/setup/devices/d123/states": "/GET_device_states",
+  "/enduser-mobile-web/1/enduserAPI/setup/devices/d123/states/s123": "/GET_device_state",
+  "/enduser-mobile-web/1/enduserAPI/setup/devices/controllables/c123": "/GET_controllables",
+  "/enduser-mobile-web/1/enduserAPI/events/register": "/POST_register_event_listener",
+  "/enduser-mobile-web/1/enduserAPI/events/e123/fetch": "/POST_fetch_events",
+  "/enduser-mobile-web/1/enduserAPI/events/e123/unregister": "/POST_unregister_event",
+  "/enduser-mobile-web/1/enduserAPI/exec/apply": "/POST_execute_actions",
+  "/enduser-mobile-web/1/enduserAPI/exec/current": "/GET_current_executions",
+  "/enduser-mobile-web/1/enduserAPI/exec/current/e123": "/GET_current_execution",
+  "/enduser-mobile-web/1/enduserAPI/exec/current/setup": "/DELETE_cancel_all_executions",
+  "/enduser-mobile-web/1/enduserAPI/exec/current/setup/e123": "/DELETE_cancel_execution"
 }

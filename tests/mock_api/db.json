@@ -1,8 +1,261 @@
 {
-  "apiVersion": {
+  "GET_apiVersion": {
     "protocolVersion": "2022.1.3-1"
   },
-  "ping": {
-    "status": "ok"
-  }
+  "GET_gateways": [
+    {
+      "connectivity": {
+        "status": "OK",
+        "protocolVersion": "2025.3.2-7"
+      },
+      "gatewayId": "0000-1111-2222"
+    }
+  ],
+  "GET_setup": {
+    "gateways": [
+      {
+        "connectivity": {
+          "status": "OK",
+          "protocolVersion": "2025.3.2-7"
+        },
+        "gatewayId": "0000-1111-2222"
+      }
+    ],
+    "devices": [
+      {
+        "deviceURL": "io://0812-2424-9999/246132",
+        "type": 1,
+        "states": [
+          {
+            "value": "available",
+            "name": "core:StatusState",
+            "type": 3
+          },
+          {
+            "value": false,
+            "type": 6,
+            "name": "core:MovingState"
+          }
+        ],
+        "synced": true,
+        "subsystemId": 0,
+        "enabled": true,
+        "attributes": [
+          {
+            "value": "Somfy",
+            "name": "core:Manufacturer",
+            "type": 3
+          }
+        ],
+        "available": true,
+        "controllableName": "io:ExteriorVenetianBlindIOComponent",
+        "label": "Test Device 1"
+      },
+      {
+        "deviceURL": "io://0812-2424-9999/12936651",
+        "type": 1,
+        "states": [
+          {
+            "value": "available",
+            "name": "core:StatusState",
+            "type": 3
+          },
+          {
+            "value": false,
+            "type": 6,
+            "name": "core:MovingState"
+          }
+        ],
+        "synced": true,
+        "subsystemId": 0,
+        "enabled": true,
+        "attributes": [
+          {
+            "value": "Somfy",
+            "name": "core:Manufacturer", 
+            "type": 3
+          }
+        ],
+        "available": true,
+        "controllableName": "io:RollerShutterGenericIOComponent",
+        "label": "Test Device 2"
+      }
+    ]
+  },
+  "GET_devices": [
+    {
+      "deviceURL": "io://0812-2424-9999/246132",
+      "type": 1,
+      "states": [
+        {
+          "value": "available",
+          "name": "core:StatusState",
+          "type": 3
+        },
+        {
+          "value": false,
+          "type": 6,
+          "name": "core:MovingState"
+        }
+      ],
+      "synced": true,
+      "subsystemId": 0,
+      "enabled": true,
+      "attributes": [
+        {
+          "value": "Somfy",
+          "name": "core:Manufacturer",
+          "type": 3
+        }
+      ],
+      "available": true,
+      "controllableName": "io:ExteriorVenetianBlindIOComponent",
+      "label": "Test Device 1"
+    },
+    {
+      "deviceURL": "io://0812-2424-9999/12936651",
+      "type": 1,
+      "states": [
+        {
+          "value": "available",
+          "name": "core:StatusState",
+          "type": 3
+        },
+        {
+          "value": false,
+          "type": 6,
+          "name": "core:MovingState"
+        }
+      ],
+      "synced": true,
+      "subsystemId": 0,
+      "enabled": true,
+      "attributes": [
+        {
+          "value": "Somfy",
+          "name": "core:Manufacturer",
+          "type": 3
+        }
+      ],
+      "available": true,
+      "controllableName": "io:RollerShutterGenericIOComponent",
+      "label": "Test Device 2"
+    }
+  ],
+  "GET_device": {
+    "deviceURL": "io://0812-2424-9999/246132",
+    "type": 1,
+    "states": [
+      {
+        "value": "available",
+        "name": "core:StatusState",
+        "type": 3
+      },
+      {
+        "value": false,
+        "type": 6,
+        "name": "core:MovingState"
+      }
+    ],
+    "synced": true,
+    "subsystemId": 0,
+    "enabled": true,
+    "attributes": [
+      {
+        "value": "Somfy",
+        "name": "core:Manufacturer",
+        "type": 3
+      }
+    ],
+    "available": true,
+    "controllableName": "io:ExteriorVenetianBlindIOComponent",
+    "label": "Test Device 1"
+  },
+  "GET_device_states": [
+    {
+      "value": "available",
+      "name": "core:StatusState",
+      "type": 3
+    },
+    {
+      "value": false,
+      "type": 6,
+      "name": "core:MovingState"
+    }
+  ],
+  "GET_device_state": {
+    "value": 5,
+    "name": "core:StatusState",
+    "type": 3
+  },
+  "GET_controllables": [
+    "io://0812-2424-9999/12936651",
+    "io://0812-2424-9999/00000000"
+  ],
+  "POST_register_event_listener": {
+    "id": "12345678-1234-5678-9012-123456789012"
+  },
+  "POST_fetch_events": [
+    {
+      "name": "ExecutionStateChangedEvent"
+    },
+    {
+      "name": "DeviceProtocolAvailableEvent",
+      "protocolType": 0
+    }
+  ],
+  "POST_unregister_event": {},
+  "POST_execute_actions": {
+    "id": "exec-12345678-1234-5678-9012-123456789012"
+  },
+  "GET_current_executions": [
+    {
+      "id": "exec-12345678-1234-5678-9012-123456789012",
+      "owner": "mock-user",
+      "executionType": "HIGH_PRIORITY",
+      "executionSubType": "MANUAL",
+      "description": "Mock execution",
+      "startTime": 1703000000000,
+      "actionGroup": {
+        "label": "Test Action",
+        "actions": [
+          {
+            "deviceURL": "io://0812-2424-9999/246132",
+            "commands": [
+              {
+                "name": "open",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "state": "IN_PROGRESS"
+    }
+  ],
+  "GET_current_execution": {
+    "id": "exec-12345678-1234-5678-9012-123456789012",
+    "owner": "mock-user",
+    "executionType": "HIGH_PRIORITY", 
+    "executionSubType": "MANUAL",
+    "description": "Mock execution",
+    "startTime": 1703000000000,
+    "actionGroup": {
+      "label": "Test Action",
+      "actions": [
+        {
+          "deviceURL": "io://0812-2424-9999/246132",
+          "commands": [
+            {
+              "name": "open",
+              "parameters": []
+            }
+          ]
+        }
+      ]
+    },
+    "state": "IN_PROGRESS"
+  },
+  "DELETE_cancel_all_executions": {},
+  "DELETE_cancel_execution": {}
 }
