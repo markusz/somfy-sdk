@@ -39,7 +39,15 @@ impl SomfyApiRequestResponse for FetchEventsResponse {
 #[cfg(test)]
 #[test]
 fn parse_valid_body_correctly() {
-    let body = r#"[]"#; // Events can be empty array
+    let body = r#"[
+      {
+        "name": "ExecutionStateChangedEvent"
+      },
+      {
+        "name": "DeviceProtocolUnavailableEvent",
+        "protocolType": 0
+      }
+    ]"#; // Events can be empty array
     let parsed =
         FetchEventsResponse::from_response_body(body).expect("should parse valid body correctly");
 
@@ -47,7 +55,7 @@ fn parse_valid_body_correctly() {
         panic!("should have correct type")
     };
 
-    assert_eq!(payload.len(), 0);
+    assert_eq!(payload.len(), 2);
 }
 
 #[test]

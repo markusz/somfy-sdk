@@ -136,9 +136,10 @@ pub struct EventListener {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Event {
-    // Event fields will be defined based on actual API response
-    // For now, keeping flexible with serde_json::Value
+    name: String,
+    protocol_type: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -2,7 +2,9 @@ use crate::commands::cancel_all_executions::{
     CancelAllExecutionsCommand, CancelAllExecutionsResponse,
 };
 use crate::commands::cancel_execution::{CancelExecutionCommand, CancelExecutionResponse};
-use crate::commands::execute_action_group::{ExecuteActionGroupCommand, ExecuteActionGroupResponse};
+use crate::commands::execute_action_group::{
+    ExecuteActionGroupCommand, ExecuteActionGroupResponse,
+};
 use crate::commands::fetch_events::{FetchEventsCommand, FetchEventsResponse};
 use crate::commands::get_current_executions::{
     GetCurrentExecutionsCommand, GetCurrentExecutionsResponse,
@@ -410,7 +412,9 @@ impl ApiClient {
         &self,
         execute_request: crate::commands::types::ActionGroup,
     ) -> Result<ExecuteActionGroupResponse, RequestError> {
-        let command = ApiRequest::ExecuteActions(ExecuteActionGroupCommand { action_group: execute_request });
+        let command = ApiRequest::ExecuteActions(ExecuteActionGroupCommand {
+            action_group: execute_request,
+        });
         let res = self.execute(command).await?;
 
         match res {

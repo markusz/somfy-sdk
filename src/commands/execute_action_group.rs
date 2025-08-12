@@ -70,7 +70,9 @@ fn generates_correct_request_path() {
         }],
     };
 
-    let command = ExecuteActionGroupCommand { action_group: execute_request };
+    let command = ExecuteActionGroupCommand {
+        action_group: execute_request,
+    };
     let request_data = command.to_request();
     assert_eq!(
         request_data.path,
@@ -94,7 +96,9 @@ fn includes_json_content_type_header() {
         }],
     };
 
-    let command = ExecuteActionGroupCommand { action_group: execute_request };
+    let command = ExecuteActionGroupCommand {
+        action_group: execute_request,
+    };
     let request_data = command.to_request();
 
     let content_type = request_data.header_map.get("content-type");
