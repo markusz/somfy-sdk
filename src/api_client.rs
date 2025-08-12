@@ -190,6 +190,7 @@ impl ApiClient {
                     .post(&path)
                     .body(request_data.body)
                     .header("content-length", content_len)
+                    .header("content-type", "application/json")
                     .send()
                     .await?
             }

@@ -144,7 +144,7 @@ pub struct Event {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Command {
     pub name: String,
-    pub parameters: Vec<serde_json::Value>,
+    pub parameters: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -162,8 +162,9 @@ pub struct ActionGroup {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActionGroupExecutionId {
-    pub id: String,
+    pub exec_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -43,7 +43,7 @@ impl SomfyApiRequestResponse for ExecuteActionGroupResponse {
 #[test]
 fn parse_valid_body_correctly() {
     let body = r#"{
-        "id": "exec-12345678-1234-5678-9012-123456789012"
+        "execId": "exec-12345678-1234-5678-9012-123456789012"
     }"#;
     let parsed = ExecuteActionGroupResponse::from_response_body(body)
         .expect("should parse valid body correctly");
@@ -52,7 +52,7 @@ fn parse_valid_body_correctly() {
         panic!("should have correct type")
     };
 
-    assert_eq!(payload.id, "exec-12345678-1234-5678-9012-123456789012");
+    assert_eq!(payload.exec_id, "exec-12345678-1234-5678-9012-123456789012");
 }
 
 #[test]
