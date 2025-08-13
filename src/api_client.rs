@@ -29,10 +29,10 @@ use crate::commands::unregister_event_listener::{
     UnregisterEventListenerCommand, UnregisterEventListenerResponse,
 };
 use crate::config::tls_cert::TlsCertHandler;
-use crate::err::http::RequestError;
+use crate::err::http::{RequestError, RequestResponseMappingError};
 use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::{Certificate, ClientBuilder, StatusCode, header};
+use reqwest::{Certificate, ClientBuilder, Response, header};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum HttpProtocol {
@@ -165,12 +165,12 @@ impl ApiClient {
     pub async fn execute(&self, command: ApiRequest) -> Result<ApiResponse, RequestError> {
         let cert: Certificate = match &self.config.cert_handling {
             CertificateHandling::CertProvided(path) => {
-                let crt = std::fs::read(path).map_err(|_| RequestError::CertError)?;
+                let crt = std::fs::read(path).map_err(|_| RequestError::Cert)?;
                 Certificate::from_pem(&crt)?
             }
             CertificateHandling::DefaultCert => TlsCertHandler::ensure_local_certificate()
                 .await
-                .map_err(|_| RequestError::CertError)?,
+                .map_err(|_| RequestError::Cert)?,
         };
 
         let headers = self.generate_default_headers()?;
@@ -183,8 +183,8 @@ impl ApiClient {
         let request_data: RequestData = (&command).into();
         let path = self.generate_base_url(&request_data);
 
-        let response = match request_data.method {
-            HttpMethod::GET => client.get(&path).send().await?,
+        let response: Result<Response, reqwest::Error> = match request_data.method {
+            HttpMethod::GET => client.get(&path).send().await?.error_for_status(),
             HttpMethod::POST => {
                 let content_len = request_data.get_content_length();
 
@@ -195,20 +195,13 @@ impl ApiClient {
                     .header("content-type", "application/json")
                     .send()
                     .await?
+                    .error_for_status()
             }
-            HttpMethod::DELETE => client.delete(&path).send().await?,
+            HttpMethod::DELETE => client.delete(&path).send().await?.error_for_status(),
         };
 
-        match response.status() {
-            code if code >= StatusCode::OK && code <= StatusCode::IM_USED => {
-                let body = response.text().await?;
-                Self::map_request_to_response(command, &body)
-            }
-            code if [StatusCode::FORBIDDEN, StatusCode::UNAUTHORIZED].contains(&code) => {
-                Err(RequestError::AuthError)
-            }
-            _ => Err(RequestError::ServerError),
-        }
+        let body = response?.text().await?;
+        Self::map_request_to_response(command, &body)
     }
 
     fn generate_base_url(&self, request_data: &RequestData) -> String {
@@ -228,7 +221,7 @@ impl ApiClient {
         let mut headers = HeaderMap::new();
         let bearer_token =
             HeaderValue::from_str(format!("Bearer {}", self.config.api_key).as_str())
-                .map_err(|_| RequestError::AuthError)?;
+                .map_err(|e| RequestError::Server(e.into()))?;
         headers.insert(header::AUTHORIZATION, bearer_token);
         Ok(headers)
     }
@@ -273,7 +266,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetVersion(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -283,7 +276,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetGateways(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -293,7 +286,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetDevices(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -305,7 +298,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetDevice(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -315,7 +308,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetSetup(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -330,7 +323,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetDeviceStates(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -347,7 +340,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetDeviceState(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -362,7 +355,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetDevicesByControllable(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -374,7 +367,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::RegisterEventListener(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -389,7 +382,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::FetchEvents(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -404,7 +397,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::UnregisterEventListener(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -419,7 +412,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::ExecuteActions(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -431,7 +424,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetCurrentExecutions(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -446,7 +439,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::GetExecution(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -456,7 +449,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::CancelAllExecutions(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 
@@ -471,7 +464,7 @@ impl ApiClient {
 
         match res {
             ApiResponse::CancelExecution(res) => Ok(res),
-            _ => Err(RequestError::ServerError),
+            _ => Err(RequestResponseMappingError.into()),
         }
     }
 }

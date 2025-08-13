@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod http_integration_tests {
-    use std::time::Duration;
     use rstest::*;
     use sdk::api_client::{ApiClient, ApiClientConfig, CertificateHandling, HttpProtocol};
     use sdk::commands::types::DeviceStateValue::{Boolean, Int, String};
+    use std::time::Duration;
 
     #[fixture]
     fn api_client_localhost() -> ApiClient {

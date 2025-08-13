@@ -1,5 +1,6 @@
 pub mod api_client;
 pub mod err {
+    pub mod cert;
     pub mod http;
 }
 pub(crate) mod config {

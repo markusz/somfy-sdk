@@ -1,14 +1,10 @@
+use crate::err::cert::CertificateError;
 use log::debug;
 use reqwest::Certificate;
 use std::fs::File;
 use std::path::PathBuf;
 
 pub(crate) struct TlsCertHandler;
-pub enum CertificateError {
-    RemoteCertError,
-    InvalidLocalCert,
-    FileSystemError,
-}
 
 const REMOTE_CERT_LOCATION: &str = "https://ca.overkiz.com/overkiz-root-ca-2048.crt";
 const LOCAL_CERT_LOCATION_FOLDER: &str = ".somfycli";
@@ -30,7 +26,7 @@ impl TlsCertHandler {
     }
 
     fn ensure_local_folder(folder: PathBuf) -> Result<(), CertificateError> {
-        std::fs::create_dir_all(folder).map_err(|_| CertificateError::FileSystemError)?;
+        std::fs::create_dir_all(folder).map_err(|e| CertificateError::FileSystemError(e.into()))?;
         Ok(())
     }
 
@@ -42,9 +38,10 @@ impl TlsCertHandler {
             .text()
             .await
             .map_err(|_| CertificateError::RemoteCertError)?;
-        let mut out = File::create(path).map_err(|_| CertificateError::FileSystemError)?;
+        let mut out =
+            File::create(path).map_err(|e| CertificateError::FileSystemError(e.into()))?;
         std::io::copy(&mut body.as_bytes(), &mut out)
-            .map_err(|_| CertificateError::FileSystemError)?;
+            .map_err(|e| CertificateError::FileSystemError(e.into()))?;
 
         Ok(())
     }
