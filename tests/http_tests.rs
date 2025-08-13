@@ -13,7 +13,7 @@ mod http_integration_tests {
             url: "localhost".to_string(),
             api_key: "my_key".to_string(),
             cert_handling: CertificateHandling::CertProvided(
-                "./src/cert/overkiz-root-ca-2048.crt".to_string(),
+                "./tests/fixtures/cert/overkiz-root-ca-2048.crt".to_string(),
             ),
         })
     }
