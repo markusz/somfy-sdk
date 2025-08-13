@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod http_integration_tests {
     use rstest::*;
-    use sdk::api_client::{ApiClient, ApiClientConfig, CertificateHandling, HttpProtocol};
-    use sdk::commands::types::DeviceStateValue::{Boolean, Int, String};
+    use somfy_sdk::api_client::{ApiClient, ApiClientConfig, CertificateHandling, HttpProtocol};
+    use somfy_sdk::commands::types::DeviceStateValue::{Boolean, Int, String};
     use std::time::Duration;
 
     #[fixture]
