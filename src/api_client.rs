@@ -31,8 +31,8 @@ use crate::commands::unregister_event_listener::{
 use crate::config::tls_cert::TlsCertHandler;
 use crate::err::http::{RequestError, RequestResponseMappingError};
 use log::debug;
-use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::{Certificate, ClientBuilder, Response, header};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::{Certificate, ClientBuilder, Response};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum HttpProtocol {
@@ -225,7 +225,7 @@ impl ApiClient {
         let bearer_token =
             HeaderValue::from_str(format!("Bearer {}", self.config.api_key).as_str())
                 .map_err(|e| RequestError::Server(e.into()))?;
-        headers.insert(header::AUTHORIZATION, bearer_token);
+        headers.insert(AUTHORIZATION, bearer_token);
         Ok(headers)
     }
 
@@ -475,8 +475,8 @@ impl ApiClient {
 #[cfg(test)]
 mod api_client_tests {
     use crate::api_client::{
-        ApiClient, ApiClientConfig, ApiRequest, ApiResponse, CertificateHandling, DEFAULT_PORT,
-        HttpProtocol,
+        ApiClient, ApiClientConfig, ApiRequest, ApiResponse, CertificateHandling, HttpProtocol,
+        DEFAULT_PORT,
     };
     use crate::commands::get_device::GetDeviceCommand;
     use crate::commands::get_device_state::GetDeviceStateCommand;
