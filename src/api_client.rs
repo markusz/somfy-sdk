@@ -163,16 +163,7 @@ impl ApiClient {
     }
 
     pub async fn execute(&self, command: ApiRequest) -> Result<ApiResponse, RequestError> {
-        let cert: Certificate = match &self.config.cert_handling {
-            CertificateHandling::CertProvided(path) => {
-                let crt = std::fs::read(path).map_err(|_| RequestError::Cert)?;
-                Certificate::from_pem(&crt)?
-            }
-            CertificateHandling::DefaultCert => TlsCertHandler::ensure_local_certificate()
-                .await
-                .map_err(|_| RequestError::Cert)?,
-        };
-
+        let cert: Certificate = self.ensure_cert().await?;
         let headers = self.generate_default_headers()?;
 
         let client = ClientBuilder::new()
@@ -202,6 +193,18 @@ impl ApiClient {
 
         let body = response?.text().await?;
         Self::map_request_to_response(command, &body)
+    }
+
+    async fn ensure_cert(&self) -> Result<Certificate, RequestError> {
+        Ok(match &self.config.cert_handling {
+            CertificateHandling::CertProvided(path) => {
+                let crt = std::fs::read(path).map_err(|_| RequestError::Cert)?;
+                Certificate::from_pem(&crt)?
+            }
+            CertificateHandling::DefaultCert => TlsCertHandler::ensure_local_certificate()
+                .await
+                .map_err(|_| RequestError::Cert)?,
+        })
     }
 
     fn generate_base_url(&self, request_data: &RequestData) -> String {
