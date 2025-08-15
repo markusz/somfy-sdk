@@ -3,8 +3,8 @@ use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::err::http::RequestError;
-use reqwest::Body;
 use reqwest::header::HeaderMap;
+use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

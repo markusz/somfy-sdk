@@ -1,7 +1,7 @@
 use crate::api_client::ApiResponse;
 use crate::err::http::RequestError;
-use reqwest::Body;
 use reqwest::header::HeaderMap;
+use reqwest::Body;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Default)]

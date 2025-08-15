@@ -4,8 +4,8 @@ use crate::commands::traits::{
 };
 use crate::commands::types::CancelExecutionResult;
 use crate::err::http::RequestError;
-use reqwest::Body;
 use reqwest::header::HeaderMap;
+use reqwest::Body;
 use std::collections::HashMap;
 use urlencoding::encode;
 
