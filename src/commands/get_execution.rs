@@ -4,8 +4,8 @@ use crate::commands::traits::{
 };
 use crate::commands::types::ActionGroupExecution;
 use crate::err::http::RequestError;
-use reqwest::Body;
 use reqwest::header::HeaderMap;
+use reqwest::{Body, StatusCode};
 use std::collections::HashMap;
 use urlencoding::encode;
 
@@ -31,6 +31,17 @@ pub type GetExecutionResponse = ActionGroupExecution;
 
 impl SomfyApiRequestResponse for GetExecutionResponse {
     fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
+        //Address undocumented API behaviour:
+        //
+        //- For existing, but past :execid, exec/current/:execid returns null
+        //- For non-existing :execid, exec/current/:execid returns []
+        if body == "null" || body == "[]" {
+            return Err(RequestError::Status {
+                source: None,
+                status: StatusCode::NOT_FOUND,
+            });
+        }
+
         let resp: GetExecutionResponse = serde_json::from_str(body)?;
         Ok(ApiResponse::GetExecution(resp))
     }
@@ -73,6 +84,22 @@ fn parse_valid_body_correctly() {
     };
 
     assert_eq!(payload.id, "123");
+}
+
+#[test]
+fn handle_undocumented_null_correctly() {
+    let body = "null";
+    let parsed = GetExecutionResponse::from_response_body(body);
+
+    assert!(parsed.is_err());
+}
+
+#[test]
+fn handle_undocumented_empty_array_correctly() {
+    let body = "[]";
+    let parsed = GetExecutionResponse::from_response_body(body);
+
+    assert!(parsed.is_err());
 }
 
 #[test]
