@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Result};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,12 +39,35 @@ pub struct DeviceAttributeProcedure {
     pub params: Option<DeviceAttributeProcedureParams>,
 }
 
+impl Display for DeviceAttributeProcedure {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.procedure_name.as_str())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DeviceAttributeValue {
     String(String),
     States(Vec<String>),
     Procedures(Vec<DeviceAttributeProcedure>),
+}
+
+impl Display for DeviceAttributeValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            DeviceAttributeValue::String(s) => f.write_str(s),
+            DeviceAttributeValue::States(states) => f.write_str(states.join(", ").as_str()),
+            DeviceAttributeValue::Procedures(procedures) => {
+                let s = procedures
+                    .iter()
+                    .map(|p| p.procedure_name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                f.write_str(s.as_str())
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
