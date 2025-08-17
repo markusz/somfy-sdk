@@ -1,0 +1,50 @@
+name: Unit & Integration Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      # Precompile binary to fail fast on build errors
+      run: cargo build
+    - name: Run tests
+      run: cargo test --lib
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install json-server
+      run: npm install -g json-server@0
+    
+    - name: Start Mock API Server
+      run: |
+        ls
+        cd sdk/tests/mock_api
+        # Start mock server and wait 5s to give server time to start up
+        json-server db.json --routes routes.json --port 3000 --host 0.0.0.0 &
+        sleep 5
+        
+    - name: Verify Mock Server
+      run: |
+        curl -f http://localhost:3000/GET_apiVersion || (echo "Mock server failed to start" && exit 1)
+    
+    - name: Run Integration Tests
+      run: cargo test --test http_tests
