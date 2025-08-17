@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::Device;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -15,6 +13,8 @@ pub struct GetDeviceCommand {
 }
 
 impl SomfyApiRequestCommand for GetDeviceCommand {
+    type Response = GetDeviceResponse;
+
     fn to_request(&self) -> RequestData {
         let device_url = &self.device_url;
         let path = format!(
@@ -33,13 +33,7 @@ impl SomfyApiRequestCommand for GetDeviceCommand {
 
 pub type GetDeviceResponse = Device;
 
-impl SomfyApiRequestResponse for GetDeviceResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp = serde_json::from_str(body)?;
-
-        Ok(ApiResponse::GetDevice(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetDeviceResponse {}
 
 #[cfg(test)]
 mod device_json_parser {

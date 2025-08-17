@@ -1,4 +1,3 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
@@ -15,6 +14,7 @@ pub struct GetExecutionCommand {
 }
 
 impl SomfyApiRequestCommand for GetExecutionCommand {
+    type Response = GetExecutionResponse;
     fn to_request(&self) -> RequestData {
         let encoded_execution_id = encode(&self.execution_id);
         RequestData {
@@ -30,7 +30,7 @@ impl SomfyApiRequestCommand for GetExecutionCommand {
 pub type GetExecutionResponse = ActionGroupExecution;
 
 impl SomfyApiRequestResponse for GetExecutionResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
+    fn from_body(body: &str) -> Result<GetExecutionResponse, RequestError> {
         //Address undocumented API behaviour:
         //
         //- For existing, but past :execid, exec/current/:execid returns null
@@ -42,8 +42,7 @@ impl SomfyApiRequestResponse for GetExecutionResponse {
             });
         }
 
-        let resp: GetExecutionResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::GetExecution(resp))
+        Ok(serde_json::from_str(body)?)
     }
 }
 
@@ -76,20 +75,15 @@ fn parse_valid_body_correctly() {
     },
     "state": "INITIALIZED"
   }"#;
-    let parsed =
-        GetExecutionResponse::from_response_body(body).expect("should parse valid body correctly");
+    let resp = GetExecutionResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::GetExecution(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.id, "123");
+    assert_eq!(resp.id, "123");
 }
 
 #[test]
 fn handle_undocumented_null_correctly() {
     let body = "null";
-    let parsed = GetExecutionResponse::from_response_body(body);
+    let parsed = GetExecutionResponse::from_body(body);
 
     assert!(parsed.is_err());
 }
@@ -97,7 +91,7 @@ fn handle_undocumented_null_correctly() {
 #[test]
 fn handle_undocumented_empty_array_correctly() {
     let body = "[]";
-    let parsed = GetExecutionResponse::from_response_body(body);
+    let parsed = GetExecutionResponse::from_body(body);
 
     assert!(parsed.is_err());
 }

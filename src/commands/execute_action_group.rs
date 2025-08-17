@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::{ActionGroup, ActionGroupExecutionId};
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -14,6 +12,7 @@ pub struct ExecuteActionGroupCommand {
 }
 
 impl SomfyApiRequestCommand for ExecuteActionGroupCommand {
+    type Response = ExecuteActionGroupResponse;
     fn to_request(&self) -> RequestData {
         let body_json = serde_json::to_string(&self.action_group).unwrap_or_default();
 
@@ -32,12 +31,7 @@ impl SomfyApiRequestCommand for ExecuteActionGroupCommand {
 
 pub type ExecuteActionGroupResponse = ActionGroupExecutionId;
 
-impl SomfyApiRequestResponse for ExecuteActionGroupResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: ExecuteActionGroupResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::ExecuteActions(resp))
-    }
-}
+impl SomfyApiRequestResponse for ExecuteActionGroupResponse {}
 
 #[cfg(test)]
 #[test]
@@ -45,14 +39,10 @@ fn parse_valid_body_correctly() {
     let body = r#"{
         "execId": "exec-12345678-1234-5678-9012-123456789012"
     }"#;
-    let parsed = ExecuteActionGroupResponse::from_response_body(body)
-        .expect("should parse valid body correctly");
+    let resp =
+        ExecuteActionGroupResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::ExecuteActions(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.exec_id, "exec-12345678-1234-5678-9012-123456789012");
+    assert_eq!(resp.exec_id, "exec-12345678-1234-5678-9012-123456789012");
 }
 
 #[test]

@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::Setup;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -12,6 +10,7 @@ use std::collections::HashMap;
 pub struct GetSetupCommand;
 
 impl SomfyApiRequestCommand for GetSetupCommand {
+    type Response = GetSetupResponse;
     fn to_request(&self) -> RequestData {
         RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/setup".to_string(),
@@ -25,12 +24,7 @@ impl SomfyApiRequestCommand for GetSetupCommand {
 
 pub type GetSetupResponse = Setup;
 
-impl SomfyApiRequestResponse for GetSetupResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetSetupResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::GetSetup(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetSetupResponse {}
 
 #[cfg(test)]
 #[test]
@@ -60,17 +54,12 @@ fn parse_valid_body_correctly() {
             }
         ]
     }"#;
-    let parsed =
-        GetSetupResponse::from_response_body(body).expect("should parse valid body correctly");
+    let resp = GetSetupResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::GetSetup(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.gateways.len(), 1);
-    assert_eq!(payload.devices.len(), 1);
-    assert_eq!(payload.gateways[0].gateway_id, "0000-1111-2222");
-    assert_eq!(payload.devices[0].label, "Test Device");
+    assert_eq!(resp.gateways.len(), 1);
+    assert_eq!(resp.devices.len(), 1);
+    assert_eq!(resp.gateways[0].gateway_id, "0000-1111-2222");
+    assert_eq!(resp.devices[0].label, "Test Device");
 }
 
 #[test]

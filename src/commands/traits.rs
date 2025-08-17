@@ -1,7 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -28,9 +28,15 @@ impl RequestData {
 }
 
 pub trait SomfyApiRequestCommand {
+    type Response: SomfyApiRequestResponse;
     fn to_request(&self) -> RequestData;
 }
 
-pub trait SomfyApiRequestResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError>;
+pub trait SomfyApiRequestResponse: DeserializeOwned {
+    fn from_body(body: &str) -> Result<Self, RequestError>
+    where
+        Self: DeserializeOwned,
+    {
+        Ok(serde_json::from_str(body)?)
+    }
 }

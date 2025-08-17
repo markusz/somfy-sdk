@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::Event;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -15,6 +13,7 @@ pub struct FetchEventsCommand {
 }
 
 impl SomfyApiRequestCommand for FetchEventsCommand {
+    type Response = FetchEventsResponse;
     fn to_request(&self) -> RequestData {
         let encoded_listener_id = encode(&self.listener_id);
         RequestData {
@@ -29,12 +28,7 @@ impl SomfyApiRequestCommand for FetchEventsCommand {
 
 pub type FetchEventsResponse = Vec<Event>;
 
-impl SomfyApiRequestResponse for FetchEventsResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: FetchEventsResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::FetchEvents(resp))
-    }
-}
+impl SomfyApiRequestResponse for FetchEventsResponse {}
 
 #[cfg(test)]
 #[test]
@@ -48,14 +42,9 @@ fn parse_valid_body_correctly() {
         "protocolType": 0
       }
     ]"#; // Events can be empty array
-    let parsed =
-        FetchEventsResponse::from_response_body(body).expect("should parse valid body correctly");
+    let resp = FetchEventsResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::FetchEvents(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.len(), 2);
+    assert_eq!(resp.len(), 2);
 }
 
 #[test]

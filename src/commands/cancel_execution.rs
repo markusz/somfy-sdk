@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::CancelExecutionResult;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -15,6 +13,7 @@ pub struct CancelExecutionCommand {
 }
 
 impl SomfyApiRequestCommand for CancelExecutionCommand {
+    type Response = CancelExecutionResponse;
     fn to_request(&self) -> RequestData {
         let encoded_execution_id = encode(&self.execution_id);
         RequestData {
@@ -31,23 +30,14 @@ impl SomfyApiRequestCommand for CancelExecutionCommand {
 
 pub type CancelExecutionResponse = CancelExecutionResult;
 
-impl SomfyApiRequestResponse for CancelExecutionResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: CancelExecutionResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::CancelExecution(resp))
-    }
-}
+impl SomfyApiRequestResponse for CancelExecutionResponse {}
 
 #[cfg(test)]
 #[test]
 fn parse_valid_body_correctly() {
     let body = r#"{}"#; // Empty object
-    let parsed = CancelExecutionResponse::from_response_body(body)
-        .expect("should parse valid body correctly");
-
-    let ApiResponse::CancelExecution(_) = parsed else {
-        panic!("should have correct type")
-    };
+    let parsed = CancelExecutionResponse::from_body(body);
+    assert!(parsed.is_ok())
 }
 
 #[test]

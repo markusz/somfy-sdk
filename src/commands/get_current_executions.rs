@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::ActionGroupExecution;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -12,6 +10,7 @@ use std::collections::HashMap;
 pub struct GetCurrentExecutionsCommand;
 
 impl SomfyApiRequestCommand for GetCurrentExecutionsCommand {
+    type Response = GetCurrentExecutionsResponse;
     fn to_request(&self) -> RequestData {
         RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/exec/current".to_string(),
@@ -25,12 +24,7 @@ impl SomfyApiRequestCommand for GetCurrentExecutionsCommand {
 
 pub type GetCurrentExecutionsResponse = Vec<ActionGroupExecution>;
 
-impl SomfyApiRequestResponse for GetCurrentExecutionsResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetCurrentExecutionsResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::GetCurrentExecutions(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetCurrentExecutionsResponse {}
 
 #[cfg(test)]
 #[test]
@@ -63,28 +57,20 @@ fn parse_valid_body_correctly() {
     "state": "INITIALIZED"
     }
     ]"#;
-    let parsed = GetCurrentExecutionsResponse::from_response_body(body)
-        .expect("should parse valid body correctly");
+    let resp =
+        GetCurrentExecutionsResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::GetCurrentExecutions(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.len(), 1);
-    assert_eq!(payload[0].id, "123");
+    assert_eq!(resp.len(), 1);
+    assert_eq!(resp[0].id, "123");
 }
 
 #[test]
 fn parse_empty_array_correctly() {
     let body = r#"[]"#;
-    let parsed = GetCurrentExecutionsResponse::from_response_body(body)
-        .expect("should parse empty array correctly");
+    let resp =
+        GetCurrentExecutionsResponse::from_body(body).expect("should parse empty array correctly");
 
-    let ApiResponse::GetCurrentExecutions(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.len(), 0);
+    assert_eq!(resp.len(), 0);
 }
 
 #[test]

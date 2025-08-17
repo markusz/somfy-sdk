@@ -1,8 +1,6 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -14,6 +12,7 @@ pub struct GetDevicesByControllableCommand {
 }
 
 impl SomfyApiRequestCommand for GetDevicesByControllableCommand {
+    type Response = GetDevicesByControllableResponse;
     fn to_request(&self) -> RequestData {
         let encoded_controllable_name = encode(&self.controllable_name);
         RequestData {
@@ -30,12 +29,7 @@ impl SomfyApiRequestCommand for GetDevicesByControllableCommand {
 
 pub type GetDevicesByControllableResponse = Vec<String>;
 
-impl SomfyApiRequestResponse for GetDevicesByControllableResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetDevicesByControllableResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::GetDevicesByControllable(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetDevicesByControllableResponse {}
 
 #[cfg(test)]
 #[test]
@@ -44,16 +38,12 @@ fn parse_valid_body_correctly() {
       "io://0000-1111-2222/12345678",
       "io://0000-1111-2222/87654321"
     ]"#;
-    let parsed = GetDevicesByControllableResponse::from_response_body(body)
+    let resp = GetDevicesByControllableResponse::from_body(body)
         .expect("should parse valid body correctly");
 
-    let ApiResponse::GetDevicesByControllable(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.len(), 2);
-    assert_eq!(payload[0], "io://0000-1111-2222/12345678");
-    assert_eq!(payload[1], "io://0000-1111-2222/87654321");
+    assert_eq!(resp.len(), 2);
+    assert_eq!(resp[0], "io://0000-1111-2222/12345678");
+    assert_eq!(resp[1], "io://0000-1111-2222/87654321");
 }
 
 #[test]

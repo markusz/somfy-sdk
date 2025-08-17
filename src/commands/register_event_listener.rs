@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::EventListener;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -12,6 +10,7 @@ use std::collections::HashMap;
 pub struct RegisterEventListenerCommand;
 
 impl SomfyApiRequestCommand for RegisterEventListenerCommand {
+    type Response = RegisterEventListenerResponse;
     fn to_request(&self) -> RequestData {
         RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/events/register".to_string(),
@@ -25,12 +24,7 @@ impl SomfyApiRequestCommand for RegisterEventListenerCommand {
 
 pub type RegisterEventListenerResponse = EventListener;
 
-impl SomfyApiRequestResponse for RegisterEventListenerResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: RegisterEventListenerResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::RegisterEventListener(resp))
-    }
-}
+impl SomfyApiRequestResponse for RegisterEventListenerResponse {}
 
 #[cfg(test)]
 #[test]
@@ -38,14 +32,10 @@ fn parse_valid_body_correctly() {
     let body = r#"{
         "id": "12345678-1234-5678-9012-123456789012"
     }"#;
-    let parsed = RegisterEventListenerResponse::from_response_body(body)
-        .expect("should parse valid body correctly");
+    let resp =
+        RegisterEventListenerResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::RegisterEventListener(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.id, "12345678-1234-5678-9012-123456789012");
+    assert_eq!(resp.id, "12345678-1234-5678-9012-123456789012");
 }
 
 #[test]

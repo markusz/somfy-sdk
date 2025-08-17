@@ -1,8 +1,6 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
@@ -11,6 +9,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, PartialEq)]
 pub struct GetVersionCommand;
 impl SomfyApiRequestCommand for GetVersionCommand {
+    type Response = GetVersionResponse;
     fn to_request(&self) -> RequestData {
         RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/apiVersion".to_string(),
@@ -23,31 +22,22 @@ impl SomfyApiRequestCommand for GetVersionCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct GetVersionCommandResponse {
+pub struct GetVersionResponse {
     #[serde(rename = "protocolVersion")]
     pub protocol_version: String,
 }
 
-impl SomfyApiRequestResponse for GetVersionCommandResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetVersionCommandResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::GetVersion(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetVersionResponse {}
 
 #[cfg(test)]
 #[test]
 fn parse_valid_body_correctly() {
     let body = r#"{ "protocolVersion": "2022.1.3-1" }"#;
-    let parsed = GetVersionCommandResponse::from_response_body(body)
-        .expect("should parse valid body correctly");
+    let resp = GetVersionResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::GetVersion(payload) = parsed else {
-        panic!("should have correct type")
-    };
     assert_eq!(
-        payload,
-        GetVersionCommandResponse {
+        resp,
+        GetVersionResponse {
             protocol_version: "2022.1.3-1".to_string()
         }
     )
@@ -56,6 +46,6 @@ fn parse_valid_body_correctly() {
 #[test]
 fn errs_for_invalid_body() {
     let body = r#"{ "protVer": "2022.1.3-1" }"#;
-    let parsed = GetVersionCommandResponse::from_response_body(body);
+    let parsed = GetVersionResponse::from_body(body);
     assert!(parsed.is_err())
 }

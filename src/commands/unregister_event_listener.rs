@@ -1,8 +1,6 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use serde_json::Value;
@@ -15,6 +13,7 @@ pub struct UnregisterEventListenerCommand {
 }
 
 impl SomfyApiRequestCommand for UnregisterEventListenerCommand {
+    type Response = UnregisterEventListenerResponse;
     fn to_request(&self) -> RequestData {
         let encoded_listener_id = encode(&self.listener_id);
         RequestData {
@@ -31,25 +30,16 @@ impl SomfyApiRequestCommand for UnregisterEventListenerCommand {
 
 pub type UnregisterEventListenerResponse = Vec<Value>; // Empty array response
 
-impl SomfyApiRequestResponse for UnregisterEventListenerResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: UnregisterEventListenerResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::UnregisterEventListener(resp))
-    }
-}
+impl SomfyApiRequestResponse for UnregisterEventListenerResponse {}
 
 #[cfg(test)]
 #[test]
 fn parse_valid_body_correctly() {
     let body = r#"[]"#;
-    let parsed = UnregisterEventListenerResponse::from_response_body(body)
+    let resp = UnregisterEventListenerResponse::from_body(body)
         .expect("should parse valid body correctly");
 
-    let ApiResponse::UnregisterEventListener(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.len(), 0);
+    assert_eq!(resp.len(), 0);
 }
 
 #[test]

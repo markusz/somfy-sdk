@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::Device;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -12,6 +10,7 @@ use std::collections::HashMap;
 pub struct GetDevicesCommand;
 
 impl SomfyApiRequestCommand for GetDevicesCommand {
+    type Response = GetDevicesResponse;
     fn to_request(&self) -> RequestData {
         RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/setup/devices".to_string(),
@@ -25,10 +24,4 @@ impl SomfyApiRequestCommand for GetDevicesCommand {
 
 pub type GetDevicesResponse = Vec<Device>;
 
-impl SomfyApiRequestResponse for GetDevicesResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp = serde_json::from_str(body)?;
-
-        Ok(ApiResponse::GetDevices(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetDevicesResponse {}

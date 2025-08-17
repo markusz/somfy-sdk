@@ -19,17 +19,18 @@ use crate::commands::get_devices_by_controllable::{
 use crate::commands::get_execution::{GetExecutionCommand, GetExecutionResponse};
 use crate::commands::get_setup::{GetSetupCommand, GetSetupResponse};
 use crate::commands::get_setup_gateways::{GetGatewaysCommand, GetGatewaysResponse};
-use crate::commands::get_version::{GetVersionCommand, GetVersionCommandResponse};
+use crate::commands::get_version::{GetVersionCommand, GetVersionResponse};
 use crate::commands::register_event_listener::{
     RegisterEventListenerCommand, RegisterEventListenerResponse,
 };
 use crate::commands::traits::SomfyApiRequestResponse;
 use crate::commands::traits::{HttpMethod, RequestData, SomfyApiRequestCommand};
+use crate::commands::types::ActionGroup;
 use crate::commands::unregister_event_listener::{
     UnregisterEventListenerCommand, UnregisterEventListenerResponse,
 };
 use crate::config::tls_cert::TlsCertHandler;
-use crate::err::http::{RequestError, RequestResponseMappingError};
+use crate::err::http::RequestError;
 use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::{Certificate, ClientBuilder, Response};
@@ -55,91 +56,6 @@ pub struct ApiClientConfig {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ApiRequest {
-    GetVersion(GetVersionCommand),
-    GetGateways(GetGatewaysCommand),
-    GetDevices(GetDevicesCommand),
-    GetDevice(GetDeviceCommand),
-    GetSetup(GetSetupCommand),
-    GetDeviceStates(GetDeviceStatesCommand),
-    GetDeviceState(GetDeviceStateCommand),
-    GetDevicesByControllable(GetDevicesByControllableCommand),
-    RegisterEventListener(RegisterEventListenerCommand),
-    FetchEvents(FetchEventsCommand),
-    UnregisterEventListener(UnregisterEventListenerCommand),
-    ExecuteActions(ExecuteActionGroupCommand),
-    GetCurrentExecutions(GetCurrentExecutionsCommand),
-    GetExecution(GetExecutionCommand),
-    CancelAllExecutions(CancelAllExecutionsCommand),
-    CancelExecution(CancelExecutionCommand),
-}
-
-impl From<ApiRequest> for RequestData {
-    fn from(value: ApiRequest) -> Self {
-        match value {
-            ApiRequest::GetVersion(c) => c.to_request(),
-            ApiRequest::GetGateways(c) => c.to_request(),
-            ApiRequest::GetDevices(c) => c.to_request(),
-            ApiRequest::GetDevice(c) => c.to_request(),
-            ApiRequest::GetSetup(c) => c.to_request(),
-            ApiRequest::GetDeviceStates(c) => c.to_request(),
-            ApiRequest::GetDeviceState(c) => c.to_request(),
-            ApiRequest::GetDevicesByControllable(c) => c.to_request(),
-            ApiRequest::RegisterEventListener(c) => c.to_request(),
-            ApiRequest::FetchEvents(c) => c.to_request(),
-            ApiRequest::UnregisterEventListener(c) => c.to_request(),
-            ApiRequest::ExecuteActions(c) => c.to_request(),
-            ApiRequest::GetCurrentExecutions(c) => c.to_request(),
-            ApiRequest::GetExecution(c) => c.to_request(),
-            ApiRequest::CancelAllExecutions(c) => c.to_request(),
-            ApiRequest::CancelExecution(c) => c.to_request(),
-        }
-    }
-}
-
-impl From<&ApiRequest> for RequestData {
-    fn from(value: &ApiRequest) -> Self {
-        match value {
-            ApiRequest::GetVersion(c) => c.to_request(),
-            ApiRequest::GetGateways(c) => c.to_request(),
-            ApiRequest::GetDevices(c) => c.to_request(),
-            ApiRequest::GetDevice(c) => c.to_request(),
-            ApiRequest::GetSetup(c) => c.to_request(),
-            ApiRequest::GetDeviceStates(c) => c.to_request(),
-            ApiRequest::GetDeviceState(c) => c.to_request(),
-            ApiRequest::GetDevicesByControllable(c) => c.to_request(),
-            ApiRequest::RegisterEventListener(c) => c.to_request(),
-            ApiRequest::FetchEvents(c) => c.to_request(),
-            ApiRequest::UnregisterEventListener(c) => c.to_request(),
-            ApiRequest::ExecuteActions(c) => c.to_request(),
-            ApiRequest::GetCurrentExecutions(c) => c.to_request(),
-            ApiRequest::GetExecution(c) => c.to_request(),
-            ApiRequest::CancelAllExecutions(c) => c.to_request(),
-            ApiRequest::CancelExecution(c) => c.to_request(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum ApiResponse {
-    GetVersion(GetVersionCommandResponse),
-    GetGateways(GetGatewaysResponse),
-    GetDevices(GetDevicesResponse),
-    GetDevice(GetDeviceResponse),
-    GetSetup(GetSetupResponse),
-    GetDeviceStates(GetDeviceStatesResponse),
-    GetDeviceState(GetDeviceStateResponse),
-    GetDevicesByControllable(GetDevicesByControllableResponse),
-    RegisterEventListener(RegisterEventListenerResponse),
-    FetchEvents(FetchEventsResponse),
-    UnregisterEventListener(UnregisterEventListenerResponse),
-    ExecuteActions(ExecuteActionGroupResponse),
-    GetCurrentExecutions(GetCurrentExecutionsResponse),
-    GetExecution(GetExecutionResponse),
-    CancelAllExecutions(CancelAllExecutionsResponse),
-    CancelExecution(CancelExecutionResponse),
-}
-#[derive(Debug, Clone, PartialEq)]
 pub struct ApiClient {
     config: ApiClientConfig,
 }
@@ -162,7 +78,10 @@ impl ApiClient {
         })
     }
 
-    pub async fn execute(&self, command: ApiRequest) -> Result<ApiResponse, RequestError> {
+    pub async fn execute<C>(&self, command: C) -> Result<C::Response, RequestError>
+    where
+        C: SomfyApiRequestCommand,
+    {
         let cert: Certificate = self.ensure_cert().await?;
         let headers = self.generate_default_headers()?;
 
@@ -171,7 +90,7 @@ impl ApiClient {
             .default_headers(headers)
             .build()?;
 
-        let request_data: RequestData = (&command).into();
+        let request_data: RequestData = command.to_request();
         let path = self.generate_base_url(&request_data);
 
         let response: Result<Response, reqwest::Error> = match request_data.method {
@@ -192,7 +111,7 @@ impl ApiClient {
         };
 
         let body = response?.text().await?;
-        Self::map_request_to_response(command, &body)
+        C::Response::from_body(body.as_str())
     }
 
     async fn ensure_cert(&self) -> Result<Certificate, RequestError> {
@@ -229,105 +148,37 @@ impl ApiClient {
         Ok(headers)
     }
 
-    fn map_request_to_response(
-        command: ApiRequest,
-        body: &str,
-    ) -> Result<ApiResponse, RequestError> {
-        match command {
-            ApiRequest::GetVersion(_) => GetVersionCommandResponse::from_response_body(body),
-            ApiRequest::GetGateways(_) => GetGatewaysResponse::from_response_body(body),
-            ApiRequest::GetDevices(_) => GetDevicesResponse::from_response_body(body),
-            ApiRequest::GetDevice(_) => GetDeviceResponse::from_response_body(body),
-            ApiRequest::GetSetup(_) => GetSetupResponse::from_response_body(body),
-            ApiRequest::GetDeviceStates(_) => GetDeviceStatesResponse::from_response_body(body),
-            ApiRequest::GetDeviceState(_) => GetDeviceStateResponse::from_response_body(body),
-            ApiRequest::GetDevicesByControllable(_) => {
-                GetDevicesByControllableResponse::from_response_body(body)
-            }
-            ApiRequest::RegisterEventListener(_) => {
-                RegisterEventListenerResponse::from_response_body(body)
-            }
-            ApiRequest::FetchEvents(_) => FetchEventsResponse::from_response_body(body),
-            ApiRequest::UnregisterEventListener(_) => {
-                UnregisterEventListenerResponse::from_response_body(body)
-            }
-            ApiRequest::ExecuteActions(_) => ExecuteActionGroupResponse::from_response_body(body),
-            ApiRequest::GetCurrentExecutions(_) => {
-                GetCurrentExecutionsResponse::from_response_body(body)
-            }
-            ApiRequest::GetExecution(_) => GetExecutionResponse::from_response_body(body),
-            ApiRequest::CancelAllExecutions(_) => {
-                CancelAllExecutionsResponse::from_response_body(body)
-            }
-            ApiRequest::CancelExecution(_) => CancelExecutionResponse::from_response_body(body),
-        }
-    }
-
-    pub async fn get_version(&self) -> Result<GetVersionCommandResponse, RequestError> {
-        let command = ApiRequest::GetVersion(GetVersionCommand);
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetVersion(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+    pub async fn get_version(&self) -> Result<GetVersionResponse, RequestError> {
+        self.execute(GetVersionCommand).await
     }
 
     pub async fn get_gateways(&self) -> Result<GetGatewaysResponse, RequestError> {
-        let command = ApiRequest::GetGateways(GetGatewaysCommand);
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetGateways(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        self.execute(GetGatewaysCommand).await
     }
 
     pub async fn get_devices(&self) -> Result<GetDevicesResponse, RequestError> {
-        let command = ApiRequest::GetDevices(GetDevicesCommand);
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetDevices(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        self.execute(GetDevicesCommand).await
     }
 
     pub async fn get_device(&self, device_url: &str) -> Result<GetDeviceResponse, RequestError> {
-        let command = ApiRequest::GetDevice(GetDeviceCommand {
+        self.execute(GetDeviceCommand {
             device_url: device_url.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetDevice(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 
     pub async fn get_setup(&self) -> Result<GetSetupResponse, RequestError> {
-        let command = ApiRequest::GetSetup(GetSetupCommand);
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetSetup(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        self.execute(GetSetupCommand).await
     }
 
     pub async fn get_device_states(
         &self,
         device_url: &str,
     ) -> Result<GetDeviceStatesResponse, RequestError> {
-        let command = ApiRequest::GetDeviceStates(GetDeviceStatesCommand {
+        self.execute(GetDeviceStatesCommand {
             device_url: device_url.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetDeviceStates(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 
     pub async fn get_device_state(
@@ -335,160 +186,94 @@ impl ApiClient {
         device_url: &str,
         state_name: &str,
     ) -> Result<GetDeviceStateResponse, RequestError> {
-        let command = ApiRequest::GetDeviceState(GetDeviceStateCommand {
+        self.execute(GetDeviceStateCommand {
             device_url: device_url.to_string(),
             state_name: state_name.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetDeviceState(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 
     pub async fn get_devices_by_controllable(
         &self,
         controllable_name: &str,
     ) -> Result<GetDevicesByControllableResponse, RequestError> {
-        let command = ApiRequest::GetDevicesByControllable(GetDevicesByControllableCommand {
+        self.execute(GetDevicesByControllableCommand {
             controllable_name: controllable_name.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetDevicesByControllable(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 
     pub async fn register_event_listener(
         &self,
     ) -> Result<RegisterEventListenerResponse, RequestError> {
-        let command = ApiRequest::RegisterEventListener(RegisterEventListenerCommand);
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::RegisterEventListener(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        self.execute(RegisterEventListenerCommand).await
     }
 
     pub async fn fetch_events(
         &self,
         listener_id: &str,
     ) -> Result<FetchEventsResponse, RequestError> {
-        let command = ApiRequest::FetchEvents(FetchEventsCommand {
+        self.execute(FetchEventsCommand {
             listener_id: listener_id.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::FetchEvents(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 
     pub async fn unregister_event_listener(
         &self,
         listener_id: &str,
     ) -> Result<UnregisterEventListenerResponse, RequestError> {
-        let command = ApiRequest::UnregisterEventListener(UnregisterEventListenerCommand {
+        self.execute(UnregisterEventListenerCommand {
             listener_id: listener_id.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::UnregisterEventListener(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 
     pub async fn execute_actions(
         &self,
-        execute_request: crate::commands::types::ActionGroup,
+        action_group: ActionGroup,
     ) -> Result<ExecuteActionGroupResponse, RequestError> {
-        let command = ApiRequest::ExecuteActions(ExecuteActionGroupCommand {
-            action_group: execute_request,
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::ExecuteActions(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        self.execute(ExecuteActionGroupCommand { action_group })
+            .await
     }
 
     pub async fn get_current_executions(
         &self,
     ) -> Result<GetCurrentExecutionsResponse, RequestError> {
-        let command = ApiRequest::GetCurrentExecutions(GetCurrentExecutionsCommand);
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetCurrentExecutions(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        self.execute(GetCurrentExecutionsCommand).await
     }
 
     pub async fn get_execution(
         &self,
         execution_id: &str,
     ) -> Result<GetExecutionResponse, RequestError> {
-        let command = ApiRequest::GetExecution(GetExecutionCommand {
+        self.execute(GetExecutionCommand {
             execution_id: execution_id.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::GetExecution(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 
     pub async fn cancel_all_executions(&self) -> Result<CancelAllExecutionsResponse, RequestError> {
-        let command = ApiRequest::CancelAllExecutions(CancelAllExecutionsCommand);
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::CancelAllExecutions(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        self.execute(CancelAllExecutionsCommand).await
     }
 
     pub async fn cancel_execution(
         &self,
         execution_id: &str,
     ) -> Result<CancelExecutionResponse, RequestError> {
-        let command = ApiRequest::CancelExecution(CancelExecutionCommand {
+        self.execute(CancelExecutionCommand {
             execution_id: execution_id.to_string(),
-        });
-        let res = self.execute(command).await?;
-
-        match res {
-            ApiResponse::CancelExecution(res) => Ok(res),
-            _ => Err(RequestResponseMappingError.into()),
-        }
+        })
+        .await
     }
 }
 
 #[cfg(test)]
 mod api_client_tests {
     use crate::api_client::{
-        ApiClient, ApiClientConfig, ApiRequest, ApiResponse, CertificateHandling, HttpProtocol,
-        DEFAULT_PORT,
+        ApiClient, ApiClientConfig, CertificateHandling, HttpProtocol, DEFAULT_PORT,
     };
-    use crate::commands::get_device::GetDeviceCommand;
-    use crate::commands::get_device_state::GetDeviceStateCommand;
-    use crate::commands::get_device_states::GetDeviceStatesCommand;
-    use crate::commands::get_devices::GetDevicesCommand;
-    use crate::commands::get_devices_by_controllable::GetDevicesByControllableCommand;
-    use crate::commands::get_setup::GetSetupCommand;
-    use crate::commands::get_setup_gateways::GetGatewaysCommand;
-    use crate::commands::get_version::GetVersionCommand;
-    use crate::commands::register_event_listener::RegisterEventListenerCommand;
     use rstest::*;
-    use std::path::PathBuf;
 
     #[fixture]
     fn api_client() -> ApiClient {
@@ -528,109 +313,5 @@ mod api_client_tests {
         );
         assert_eq!(api_client.config.protocol, HttpProtocol::HTTPS);
         assert_eq!(api_client.config.api_key, "my_key".to_string());
-    }
-
-    #[tokio::test]
-    async fn type_mapping_correct() {
-        fn payload_to_response(
-            api_request: ApiRequest,
-            request_type: &str,
-            filename: &str,
-        ) -> ApiResponse {
-            let mut path = PathBuf::new();
-            path.push(".");
-            path.push("tests");
-            path.push("fixtures");
-            path.push("api_responses");
-            path.push(request_type);
-            path.push(filename);
-
-            let json_str = std::fs::read_to_string(&path).expect("should have fixture");
-
-            ApiClient::map_request_to_response(api_request, json_str.as_str())
-                .expect("should return a ApiResponse")
-        }
-        // Body parsing is tested only as a side_effect, refer to respective command struct for primary testing
-
-        let version_resp = payload_to_response(
-            ApiRequest::GetVersion(GetVersionCommand),
-            "get_version",
-            "version_valid_1.json",
-        );
-        assert!(matches!(version_resp, ApiResponse::GetVersion(_)));
-
-        let devices_resp = payload_to_response(
-            ApiRequest::GetDevices(GetDevicesCommand),
-            "get_devices",
-            "devices_valid_1.json",
-        );
-        assert!(matches!(devices_resp, ApiResponse::GetDevices(_)));
-
-        let device_resp = payload_to_response(
-            ApiRequest::GetDevice(GetDeviceCommand {
-                device_url: "doesnotmatter".to_string(),
-            }),
-            "get_device",
-            "device_valid_1.json",
-        );
-        assert!(matches!(device_resp, ApiResponse::GetDevice(_)));
-
-        let gateway_resp = payload_to_response(
-            ApiRequest::GetGateways(GetGatewaysCommand),
-            "get_gateways",
-            "gateways_valid_1.json",
-        );
-        assert!(matches!(gateway_resp, ApiResponse::GetGateways(_)));
-
-        let setup_resp = payload_to_response(
-            ApiRequest::GetSetup(GetSetupCommand),
-            "get_setup",
-            "setup_valid_1.json",
-        );
-        assert!(matches!(setup_resp, ApiResponse::GetSetup(_)));
-
-        let device_states_resp = payload_to_response(
-            ApiRequest::GetDeviceStates(GetDeviceStatesCommand {
-                device_url: "doesnotmatter".to_string(),
-            }),
-            "get_device_states",
-            "device_states_valid_1.json",
-        );
-        assert!(matches!(
-            device_states_resp,
-            ApiResponse::GetDeviceStates(_)
-        ));
-
-        let device_state_resp = payload_to_response(
-            ApiRequest::GetDeviceState(GetDeviceStateCommand {
-                device_url: "doesnotmatter".to_string(),
-                state_name: "doesnotmatter".to_string(),
-            }),
-            "get_device_state",
-            "device_state_valid_1.json",
-        );
-        assert!(matches!(device_state_resp, ApiResponse::GetDeviceState(_)));
-
-        let devices_by_controllable_resp = payload_to_response(
-            ApiRequest::GetDevicesByControllable(GetDevicesByControllableCommand {
-                controllable_name: "doesnotmatter".to_string(),
-            }),
-            "get_devices_by_controllable",
-            "devices_by_controllable_valid_1.json",
-        );
-        assert!(matches!(
-            devices_by_controllable_resp,
-            ApiResponse::GetDevicesByControllable(_)
-        ));
-
-        let register_event_listener_resp = payload_to_response(
-            ApiRequest::RegisterEventListener(RegisterEventListenerCommand),
-            "register_event_listener",
-            "event_listener_valid_1.json",
-        );
-        assert!(matches!(
-            register_event_listener_resp,
-            ApiResponse::RegisterEventListener(_)
-        ));
     }
 }

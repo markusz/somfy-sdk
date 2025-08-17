@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::Gateway;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -12,6 +10,7 @@ use std::collections::HashMap;
 pub struct GetGatewaysCommand;
 
 impl SomfyApiRequestCommand for GetGatewaysCommand {
+    type Response = GetGatewaysResponse;
     fn to_request(&self) -> RequestData {
         RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/setup/gateways".to_string(),
@@ -25,12 +24,7 @@ impl SomfyApiRequestCommand for GetGatewaysCommand {
 
 pub type GetGatewaysResponse = Vec<Gateway>;
 
-impl SomfyApiRequestResponse for GetGatewaysResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetGatewaysResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::GetGateways(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetGatewaysResponse {}
 
 #[cfg(test)]
 #[test]
@@ -45,14 +39,10 @@ fn parse_valid_body_correctly() {
 		"gatewayId": "0000-1111-2222"
 	}
     ]"#;
-    let parsed =
-        GetGatewaysResponse::from_response_body(body).expect("should parse valid body correctly");
+    let resp = GetGatewaysResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::GetGateways(payload) = parsed else {
-        panic!("should have correct type")
-    };
     assert_eq!(
-        payload,
+        resp,
         vec![Gateway {
             gateway_id: "0000-1111-2222".to_string(),
             connectivity: GatewayConnectivity {

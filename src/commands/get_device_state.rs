@@ -1,9 +1,7 @@
-use crate::api_client::ApiResponse;
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::DeviceState;
-use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -16,6 +14,7 @@ pub struct GetDeviceStateCommand {
 }
 
 impl SomfyApiRequestCommand for GetDeviceStateCommand {
+    type Response = GetDeviceStateResponse;
     fn to_request(&self) -> RequestData {
         let encoded_device_url = encode(&self.device_url);
         let encoded_state_name = encode(&self.state_name);
@@ -33,12 +32,7 @@ impl SomfyApiRequestCommand for GetDeviceStateCommand {
 
 pub type GetDeviceStateResponse = DeviceState;
 
-impl SomfyApiRequestResponse for GetDeviceStateResponse {
-    fn from_response_body(body: &str) -> Result<ApiResponse, RequestError> {
-        let resp: GetDeviceStateResponse = serde_json::from_str(body)?;
-        Ok(ApiResponse::GetDeviceState(resp))
-    }
-}
+impl SomfyApiRequestResponse for GetDeviceStateResponse {}
 
 #[cfg(test)]
 #[test]
@@ -49,16 +43,11 @@ fn parse_valid_body_correctly() {
         "type": 3,
         "value": "available"
     }"#;
-    let parsed = GetDeviceStateResponse::from_response_body(body)
-        .expect("should parse valid body correctly");
+    let resp = GetDeviceStateResponse::from_body(body).expect("should parse valid body correctly");
 
-    let ApiResponse::GetDeviceState(payload) = parsed else {
-        panic!("should have correct type")
-    };
-
-    assert_eq!(payload.name, "core:StatusState");
-    assert_eq!(payload.state_type, 3);
-    if let DeviceStateValue::String(value) = &payload.value {
+    assert_eq!(resp.name, "core:StatusState");
+    assert_eq!(resp.state_type, 3);
+    if let DeviceStateValue::String(value) = &resp.value {
         assert_eq!(value, "available");
     } else {
         panic!("Expected string value");
