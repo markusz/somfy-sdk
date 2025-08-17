@@ -3,10 +3,6 @@ use crate::commands::cancel_all_executions::{
 };
 use crate::commands::cancel_execution::{CancelExecutionCommand, CancelExecutionResponse};
 
-#[cfg(feature = "generic-exec")]
-use crate::commands::execute_action_group::{
-    ExecuteActionGroupCommand, ExecuteActionGroupResponse,
-};
 use crate::commands::fetch_events::{FetchEventsCommand, FetchEventsResponse};
 use crate::commands::get_current_executions::{
     GetCurrentExecutionsCommand, GetCurrentExecutionsResponse,
@@ -220,10 +216,13 @@ impl ApiClient {
     #[cfg(feature = "generic-exec")]
     pub async fn execute_actions(
         &self,
-        action_group: ActionGroup,
-    ) -> Result<ExecuteActionGroupResponse, RequestError> {
-        self.execute(ExecuteActionGroupCommand { action_group })
-            .await
+        action_group: crate::commands::types::ActionGroup,
+    ) -> Result<crate::commands::execute_action_group::ExecuteActionGroupResponse, RequestError>
+    {
+        self.execute(
+            crate::commands::execute_action_group::ExecuteActionGroupCommand { action_group },
+        )
+        .await
     }
 
     pub async fn get_current_executions(

@@ -4,23 +4,23 @@ use crate::commands::types::ActionGroupExecutionId;
 #[derive(Debug, Clone, PartialEq)]
 #[cfg(feature = "generic-exec")]
 pub struct ExecuteActionGroupCommand {
-    pub action_group: ActionGroup,
+    pub action_group: crate::commands::types::ActionGroup,
 }
 
 #[cfg(feature = "generic-exec")]
-impl SomfyApiRequestCommand for ExecuteActionGroupCommand {
+impl crate::commands::traits::SomfyApiRequestCommand for ExecuteActionGroupCommand {
     type Response = ExecuteActionGroupResponse;
-    fn to_request(&self) -> RequestData {
+    fn to_request(&self) -> crate::commands::traits::RequestData {
         let body_json = serde_json::to_string(&self.action_group).unwrap_or_default();
 
-        let mut headers = HeaderMap::new();
+        let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("content-type", "application/json".parse().unwrap());
 
-        RequestData {
+        crate::commands::traits::RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/exec/apply".to_string(),
-            method: HttpMethod::POST,
-            body: Body::from(body_json),
-            query_params: HashMap::default(),
+            method: crate::commands::traits::HttpMethod::POST,
+            body: reqwest::Body::from(body_json),
+            query_params: std::collections::HashMap::default(),
             header_map: headers,
         }
     }
