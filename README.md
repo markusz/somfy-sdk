@@ -276,34 +276,170 @@ sdk/
     └── fixtures/               # Test data
 ```
 
-### Adding New Commands
+### Extending the SDK with Custom Commands
 
-1. Create a new module in `sdk/src/commands/`
-2. Implement the required traits (`SomfyApiRequestCommand`, `SomfyApiRequestResponse`)
-3. Add the command to the `ApiRequest` enum
-4. Add the response to the `ApiResponse` enum
-5. Update the client's `map_request_to_response` method
-6. Add a convenience method to `ApiClient`
+The SDK is designed to be extensible. You can add support for new API endpoints or customize existing behavior by implementing the required traits.
 
-Example:
+#### Creating a Custom Command
+
+Here's an example of implementing a custom command to retrieve enhanced API version information:
 
 ```rust
-// In sdk/src/commands/new_command.rs
-use crate::commands::traits::{RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse};
+use serde::Deserialize;
+use somfy_sdk::commands::traits::{RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse, HttpMethod};
+use somfy_sdk::api_client::ApiClient;
+use reqwest::{Body, header::HeaderMap};
+use std::collections::HashMap;
 
+// Custom command struct
 #[derive(Debug, Clone, PartialEq)]
-pub struct NewCommand;
+pub struct GetApiHealthCommand;
 
-impl SomfyApiRequestCommand for NewCommand {
+// Response structure matching your API's response format
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct GetApiHealthResponse {
+    pub version: String,
+    pub uptime_seconds: u64,
+    pub status: String,
+}
+
+// Implement the response trait
+impl SomfyApiRequestResponse for GetApiHealthResponse {
+    // Default implementation is usually sufficient
+}
+
+// Implement the command trait
+impl SomfyApiRequestCommand for GetApiHealthCommand {
+    type Response = GetApiHealthResponse;
+
     fn to_request(&self) -> RequestData {
         RequestData {
-            path: "/api/new".to_string(),
+            path: "/health".to_string(),           // Your custom endpoint
             method: HttpMethod::GET,
-            // ... other fields
+            body: Body::default(),
+            query_params: HashMap::new(),
+            header_map: HeaderMap::new(),
+        }
+    }
+}
+
+// Usage example
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = ApiClient::from("your-gateway-id", "your-api-key");
+    
+    // Execute your custom command
+    let health_info = client.execute(GetApiHealthCommand).await?;
+    println!("API Status: {}, Uptime: {}s", health_info.status, health_info.uptime_seconds);
+    
+    Ok(())
+}
+```
+
+#### Command with Parameters
+
+For commands that need parameters, include them in your command struct:
+
+```rust
+#[derive(Debug, Clone, PartialEq)]
+pub struct GetDeviceHistoryCommand<'a> {
+    pub device_url: &'a str,
+    pub days: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct DeviceHistoryResponse {
+    pub events: Vec<HistoryEvent>,
+    pub total_count: u32,
+}
+
+impl SomfyApiRequestCommand for GetDeviceHistoryCommand<'_> {
+    type Response = DeviceHistoryResponse;
+
+    fn to_request(&self) -> RequestData {
+        let mut query_params = HashMap::new();
+        query_params.insert("days".to_string(), self.days.to_string());
+        
+        RequestData {
+            path: format!("/setup/devices/{}/history", urlencoding::encode(self.device_url)),
+            method: HttpMethod::GET,
+            body: Body::default(),
+            query_params,
+            header_map: HeaderMap::new(),
+        }
+    }
+}
+
+// Usage
+let history = client.execute(GetDeviceHistoryCommand {
+    device_url: "io://0000-1111-2222/12345678",
+    days: 7,
+}).await?;
+```
+
+#### POST Commands with Body
+
+For commands that send data:
+
+```rust
+use serde::Serialize;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct UpdateDeviceSettingsCommand {
+    pub device_url: String,
+    pub settings: DeviceSettings,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DeviceSettings {
+    pub auto_close_time: Option<u32>,
+    pub sensitivity: Option<u8>,
+}
+
+impl SomfyApiRequestCommand for UpdateDeviceSettingsCommand {
+    type Response = UpdateSettingsResponse;
+
+    fn to_request(&self) -> RequestData {
+        let body_json = serde_json::to_string(&self.settings)
+            .expect("Failed to serialize settings");
+        
+        let mut headers = HeaderMap::new();
+        headers.insert("Content-Type", "application/json".parse().unwrap());
+        
+        RequestData {
+            path: format!("/setup/devices/{}/settings", urlencoding::encode(&self.device_url)),
+            method: HttpMethod::PUT,
+            body: Body::from(body_json),
+            query_params: HashMap::new(),
+            header_map: headers,
         }
     }
 }
 ```
+
+#### Best Practices
+
+1. **Leverage existing patterns**: Study how built-in commands are implemented in `src/commands/`
+2. **Handle errors gracefully**: Use proper Result types and meaningful error messages
+3. **Use lifetimes wisely**: Prefer `&str` over `String` for parameters that don't need ownership
+4. **URL encoding**: Always encode URL parameters using `urlencoding::encode()`
+5. **Content-Type headers**: Set appropriate headers for POST/PUT requests with JSON bodies
+6. **Testing**: Add unit tests for your custom commands
+
+#### Integration with Built-in Commands
+
+Your custom commands work seamlessly with the existing SDK infrastructure:
+
+```rust
+// Mix custom and built-in commands
+let version = client.get_version().await?;
+let health = client.execute(GetApiHealthCommand).await?;
+let devices = client.get_devices().await?;
+
+println!("API Version: {}, Health: {}", version.protocol_version, health.status);
+```
+
+This extensible design allows you to adapt the SDK to new API endpoints, experimental features, or custom Somfy gateway implementations while maintaining type safety and consistent error handling.
 
 ## License
 
