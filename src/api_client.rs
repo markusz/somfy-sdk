@@ -2,6 +2,8 @@ use crate::commands::cancel_all_executions::{
     CancelAllExecutionsCommand, CancelAllExecutionsResponse,
 };
 use crate::commands::cancel_execution::{CancelExecutionCommand, CancelExecutionResponse};
+
+#[cfg(feature = "generic-exec")]
 use crate::commands::execute_action_group::{
     ExecuteActionGroupCommand, ExecuteActionGroupResponse,
 };
@@ -25,7 +27,6 @@ use crate::commands::register_event_listener::{
 };
 use crate::commands::traits::SomfyApiRequestResponse;
 use crate::commands::traits::{HttpMethod, RequestData, SomfyApiRequestCommand};
-use crate::commands::types::ActionGroup;
 use crate::commands::unregister_event_listener::{
     UnregisterEventListenerCommand, UnregisterEventListenerResponse,
 };
@@ -216,6 +217,7 @@ impl ApiClient {
             .await
     }
 
+    #[cfg(feature = "generic-exec")]
     pub async fn execute_actions(
         &self,
         action_group: ActionGroup,

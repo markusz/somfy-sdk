@@ -1,16 +1,13 @@
-use crate::commands::traits::{
-    HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
-};
-use crate::commands::types::{ActionGroup, ActionGroupExecutionId};
-use reqwest::header::HeaderMap;
-use reqwest::Body;
-use std::collections::HashMap;
+use crate::commands::traits::SomfyApiRequestResponse;
+use crate::commands::types::ActionGroupExecutionId;
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg(feature = "generic-exec")]
 pub struct ExecuteActionGroupCommand {
     pub action_group: ActionGroup,
 }
 
+#[cfg(feature = "generic-exec")]
 impl SomfyApiRequestCommand for ExecuteActionGroupCommand {
     type Response = ExecuteActionGroupResponse;
     fn to_request(&self) -> RequestData {
@@ -46,55 +43,57 @@ fn parse_valid_body_correctly() {
 }
 
 #[test]
-fn generates_correct_request_path() {
-    use crate::commands::types::{Action, ActionGroup, Command};
+#[cfg(feature = "generic-exec")]
+mod execute_action_group {
+    use crate::commands::traits::HttpMethod;
 
-    let execute_request = ActionGroup {
-        label: Some("Test execution".to_string()),
-        actions: vec![Action {
-            device_url: "io://0000-1111-2222/12345678".to_string(),
-            commands: vec![Command {
-                name: "open".to_string(),
-                parameters: vec![],
+    fn generates_correct_request_path() {
+        use crate::commands::types::{Action, ActionGroup, Command};
+
+        let execute_request = ActionGroup {
+            label: Some("Test execution".to_string()),
+            actions: vec![Action {
+                device_url: "io://0000-1111-2222/12345678".to_string(),
+                commands: vec![Command {
+                    name: "open".to_string(),
+                    parameters: vec![],
+                }],
             }],
-        }],
-    };
+        };
 
-    let command = ExecuteActionGroupCommand {
-        action_group: execute_request,
-    };
-    let request_data = command.to_request();
-    assert_eq!(
-        request_data.path,
-        "/enduser-mobile-web/1/enduserAPI/exec/apply"
-    );
-    assert_eq!(request_data.method, HttpMethod::POST);
-}
+        let command = crate::commands::execute_action_group::ExecuteActionGroupCommand {
+            action_group: execute_request,
+        };
+        let request_data = command.to_request();
+        assert_eq!(
+            request_data.path,
+            "/enduser-mobile-web/1/enduserAPI/exec/apply"
+        );
+        assert_eq!(request_data.method, HttpMethod::POST);
+    }
 
-#[test]
-fn includes_json_content_type_header() {
-    use crate::commands::types::{Action, ActionGroup, Command};
+    #[test]
+    fn includes_json_content_type_header() {
+        use crate::commands::types::{Action, ActionGroup, Command};
 
-    let execute_request = ActionGroup {
-        label: None,
-        actions: vec![Action {
-            device_url: "io://0000-1111-2222/12345678".to_string(),
-            commands: vec![Command {
-                name: "close".to_string(),
-                parameters: vec![],
+        let execute_request = ActionGroup {
+            label: None,
+            actions: vec![Action {
+                device_url: "io://0000-1111-2222/12345678".to_string(),
+                commands: vec![Command {
+                    name: "close".to_string(),
+                    parameters: vec![],
+                }],
             }],
-        }],
-    };
+        };
 
-    let command = ExecuteActionGroupCommand {
-        action_group: execute_request,
-    };
-    let request_data = command.to_request();
+        let command = crate::commands::execute_action_group::ExecuteActionGroupCommand {
+            action_group: execute_request,
+        };
+        let request_data = command.to_request();
 
-    let content_type = request_data.header_map.get("content-type");
-    assert!(content_type.is_some());
-    assert_eq!(content_type.unwrap().to_str().unwrap(), "application/json");
+        let content_type = request_data.header_map.get("content-type");
+        assert!(content_type.is_some());
+        assert_eq!(content_type.unwrap().to_str().unwrap(), "application/json");
+    }
 }
-
-#[test]
-fn errs_for_invalid_body() {}

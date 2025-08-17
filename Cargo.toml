@@ -1,7 +1,7 @@
 [package]
 name = "somfy-sdk"
 authors = ["Markus Ziller"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 rust-version = "1.82"
@@ -10,6 +10,10 @@ description = "A Rust-based SDK for interacting with Somfy smart home devices an
 repository = "https://github.com/markusz/somfy-sdk-cli"
 keywords = ["somfy", "overkiz"]
 categories = ["api-bindings"]
+
+[features]
+default = []
+generic-exec = []
 
 [dependencies]
 tokio = { version = "1.47.1", features = ["rt", "rt-multi-thread", "macros"] }
