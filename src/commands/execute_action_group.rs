@@ -1,8 +1,8 @@
 use crate::commands::traits::SomfyApiRequestResponse;
 use crate::commands::types::ActionGroupExecutionId;
 
-#[derive(Debug, Clone, PartialEq)]
 #[cfg(feature = "generic-exec")]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExecuteActionGroupCommand {
     pub action_group: crate::commands::types::ActionGroup,
 }
@@ -42,11 +42,12 @@ fn parse_valid_body_correctly() {
     assert_eq!(resp.exec_id, "exec-12345678-1234-5678-9012-123456789012");
 }
 
-#[test]
 #[cfg(feature = "generic-exec")]
+#[cfg(test)]
 mod execute_action_group {
-    use crate::commands::traits::HttpMethod;
+    use crate::commands::traits::{HttpMethod, SomfyApiRequestCommand};
 
+    #[test]
     fn generates_correct_request_path() {
         use crate::commands::types::{Action, ActionGroup, Command};
 
