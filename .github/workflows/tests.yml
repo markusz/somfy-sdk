@@ -37,7 +37,7 @@ jobs:
     - name: Start Mock API Server
       run: |
         ls
-        cd sdk/tests/mock_api
+        cd tests/mock_api
         # Start mock server and wait 5s to give server time to start up
         json-server db.json --routes routes.json --port 3000 --host 0.0.0.0 &
         sleep 5

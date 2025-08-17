@@ -2,6 +2,7 @@
 
 A Rust library providing type-safe, async access to the Somfy TaHoma Local API for controlling smart home devices.
 
+[![Unit & Integration Tests](https://github.com/markusz/somfy-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/markusz/somfy-sdk/actions/workflows/tests.yml)
 [![Crates.io](https://img.shields.io/crates/v/somfy-sdk-cli.svg)](https://crates.io/crates/somfy-sdk-cli)
 [![Documentation](https://docs.rs/somfy-sdk-cli/badge.svg)](https://docs.rs/somfy-sdk-cli)
 
