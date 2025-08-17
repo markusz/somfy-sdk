@@ -8,14 +8,14 @@ use std::collections::HashMap;
 use urlencoding::encode;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct CancelExecutionCommand {
-    pub execution_id: String,
+pub struct CancelExecutionCommand<'a> {
+    pub execution_id: &'a str,
 }
 
-impl SomfyApiRequestCommand for CancelExecutionCommand {
+impl SomfyApiRequestCommand for CancelExecutionCommand<'_> {
     type Response = CancelExecutionResponse;
     fn to_request(&self) -> RequestData {
-        let encoded_execution_id = encode(&self.execution_id);
+        let encoded_execution_id = encode(self.execution_id);
         RequestData {
             path: format!(
                 "/enduser-mobile-web/1/enduserAPI/exec/current/setup/{encoded_execution_id}"
@@ -43,7 +43,7 @@ fn parse_valid_body_correctly() {
 #[test]
 fn generates_correct_request_path() {
     let command = CancelExecutionCommand {
-        execution_id: "exec-12345678-1234-5678-9012-123456789012".to_string(),
+        execution_id: "exec-12345678-1234-5678-9012-123456789012",
     };
     let request_data = command.to_request();
     assert_eq!(
@@ -56,7 +56,7 @@ fn generates_correct_request_path() {
 #[test]
 fn url_encoding_works_correctly() {
     let command = CancelExecutionCommand {
-        execution_id: "test-execution-id-with-special-chars!@#".to_string(),
+        execution_id: "test-execution-id-with-special-chars!@#",
     };
     let request_data = command.to_request();
     assert_eq!(

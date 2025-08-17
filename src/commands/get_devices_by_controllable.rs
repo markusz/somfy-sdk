@@ -7,14 +7,14 @@ use std::collections::HashMap;
 use urlencoding::encode;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct GetDevicesByControllableCommand {
-    pub controllable_name: String,
+pub struct GetDevicesByControllableCommand<'a> {
+    pub controllable_name: &'a str,
 }
 
-impl SomfyApiRequestCommand for GetDevicesByControllableCommand {
+impl SomfyApiRequestCommand for GetDevicesByControllableCommand<'_> {
     type Response = GetDevicesByControllableResponse;
     fn to_request(&self) -> RequestData {
-        let encoded_controllable_name = encode(&self.controllable_name);
+        let encoded_controllable_name = encode(self.controllable_name);
         RequestData {
             path: format!(
                 "/enduser-mobile-web/1/enduserAPI/setup/devices/controllables/{encoded_controllable_name}"
@@ -49,7 +49,7 @@ fn parse_valid_body_correctly() {
 #[test]
 fn url_encoding_works_correctly() {
     let command = GetDevicesByControllableCommand {
-        controllable_name: "io:StackComponent".to_string(),
+        controllable_name: "io:StackComponent",
     };
     let request_data = command.to_request();
     assert_eq!(

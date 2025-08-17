@@ -8,14 +8,14 @@ use std::collections::HashMap;
 use urlencoding::encode;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct GetDeviceStatesCommand {
-    pub device_url: String,
+pub struct GetDeviceStatesCommand<'a> {
+    pub device_url: &'a str,
 }
 
-impl SomfyApiRequestCommand for GetDeviceStatesCommand {
+impl SomfyApiRequestCommand for GetDeviceStatesCommand<'_> {
     type Response = GetDeviceStatesResponse;
     fn to_request(&self) -> RequestData {
-        let encoded_device_url = encode(&self.device_url);
+        let encoded_device_url = encode(self.device_url);
         RequestData {
             path: format!(
                 "/enduser-mobile-web/1/enduserAPI/setup/devices/{encoded_device_url}/states"
@@ -58,7 +58,7 @@ fn parse_valid_body_correctly() {
 #[test]
 fn url_encoding_works_correctly() {
     let command = GetDeviceStatesCommand {
-        device_url: "io://0000-1111-2222/12345678".to_string(),
+        device_url: "io://0000-1111-2222/12345678",
     };
     let request_data = command.to_request();
     assert_eq!(

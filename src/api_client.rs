@@ -161,10 +161,7 @@ impl ApiClient {
     }
 
     pub async fn get_device(&self, device_url: &str) -> Result<GetDeviceResponse, RequestError> {
-        self.execute(GetDeviceCommand {
-            device_url: device_url.to_string(),
-        })
-        .await
+        self.execute(GetDeviceCommand { device_url }).await
     }
 
     pub async fn get_setup(&self) -> Result<GetSetupResponse, RequestError> {
@@ -175,10 +172,7 @@ impl ApiClient {
         &self,
         device_url: &str,
     ) -> Result<GetDeviceStatesResponse, RequestError> {
-        self.execute(GetDeviceStatesCommand {
-            device_url: device_url.to_string(),
-        })
-        .await
+        self.execute(GetDeviceStatesCommand { device_url }).await
     }
 
     pub async fn get_device_state(
@@ -187,8 +181,8 @@ impl ApiClient {
         state_name: &str,
     ) -> Result<GetDeviceStateResponse, RequestError> {
         self.execute(GetDeviceStateCommand {
-            device_url: device_url.to_string(),
-            state_name: state_name.to_string(),
+            device_url,
+            state_name,
         })
         .await
     }
@@ -197,10 +191,8 @@ impl ApiClient {
         &self,
         controllable_name: &str,
     ) -> Result<GetDevicesByControllableResponse, RequestError> {
-        self.execute(GetDevicesByControllableCommand {
-            controllable_name: controllable_name.to_string(),
-        })
-        .await
+        self.execute(GetDevicesByControllableCommand { controllable_name })
+            .await
     }
 
     pub async fn register_event_listener(
@@ -213,20 +205,15 @@ impl ApiClient {
         &self,
         listener_id: &str,
     ) -> Result<FetchEventsResponse, RequestError> {
-        self.execute(FetchEventsCommand {
-            listener_id: listener_id.to_string(),
-        })
-        .await
+        self.execute(FetchEventsCommand { listener_id }).await
     }
 
     pub async fn unregister_event_listener(
         &self,
         listener_id: &str,
     ) -> Result<UnregisterEventListenerResponse, RequestError> {
-        self.execute(UnregisterEventListenerCommand {
-            listener_id: listener_id.to_string(),
-        })
-        .await
+        self.execute(UnregisterEventListenerCommand { listener_id })
+            .await
     }
 
     pub async fn execute_actions(
@@ -247,10 +234,7 @@ impl ApiClient {
         &self,
         execution_id: &str,
     ) -> Result<GetExecutionResponse, RequestError> {
-        self.execute(GetExecutionCommand {
-            execution_id: execution_id.to_string(),
-        })
-        .await
+        self.execute(GetExecutionCommand { execution_id }).await
     }
 
     pub async fn cancel_all_executions(&self) -> Result<CancelAllExecutionsResponse, RequestError> {
@@ -261,10 +245,7 @@ impl ApiClient {
         &self,
         execution_id: &str,
     ) -> Result<CancelExecutionResponse, RequestError> {
-        self.execute(CancelExecutionCommand {
-            execution_id: execution_id.to_string(),
-        })
-        .await
+        self.execute(CancelExecutionCommand { execution_id }).await
     }
 }
 

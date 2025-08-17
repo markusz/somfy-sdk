@@ -8,11 +8,11 @@ use std::collections::HashMap;
 use urlencoding::encode;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct GetDeviceCommand {
-    pub device_url: String,
+pub struct GetDeviceCommand<'a> {
+    pub device_url: &'a str,
 }
 
-impl SomfyApiRequestCommand for GetDeviceCommand {
+impl SomfyApiRequestCommand for GetDeviceCommand<'_> {
     type Response = GetDeviceResponse;
 
     fn to_request(&self) -> RequestData {
