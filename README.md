@@ -123,7 +123,7 @@ Add the feature to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-somfy_sdk = { package = "somfy-sdk", version = "0.1.0", path = "path/to/somfy-sdk-cli/sdk" }
+somfy_sdk = { package = "somfy-sdk", version = "0.1.0", path = "path/to/somfy-sdk-cli/sdk", features = ["generic-exec"]}
 ```
 
 #### Why is this Feature Gated?
