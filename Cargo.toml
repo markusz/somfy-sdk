@@ -12,6 +12,10 @@ homepage = "https://github.com/markusz/somfy-sdk"
 readme = "README.md"
 keywords = ["somfy", "overkiz"]
 categories = ["api-bindings"]
+exclude = [
+    "tests/",
+    ".github/"
+]
 
 [features]
 default = []
