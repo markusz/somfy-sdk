@@ -2,6 +2,7 @@ use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::CancelAllExecutionsResult;
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -11,14 +12,14 @@ pub struct CancelAllExecutionsCommand;
 
 impl SomfyApiRequestCommand for CancelAllExecutionsCommand {
     type Response = CancelAllExecutionsResponse;
-    fn to_request(&self) -> RequestData {
-        RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
+        Ok(RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/exec/current/setup".to_string(),
             method: HttpMethod::DELETE,
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
-        }
+        })
     }
 }
 
@@ -38,7 +39,7 @@ fn parse_valid_body_correctly() {
 #[test]
 fn generates_correct_request_path() {
     let command = CancelAllExecutionsCommand;
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/exec/current/setup"

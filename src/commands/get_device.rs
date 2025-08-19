@@ -2,6 +2,7 @@ use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::Device;
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -15,19 +16,19 @@ pub struct GetDeviceCommand<'a> {
 impl SomfyApiRequestCommand for GetDeviceCommand<'_> {
     type Response = GetDeviceResponse;
 
-    fn to_request(&self) -> RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
         let device_url = &self.device_url;
         let path = format!(
             "/enduser-mobile-web/1/enduserAPI/setup/devices/{}",
             encode(device_url)
         );
-        RequestData {
+        Ok(RequestData {
             path: path.to_string(),
             method: HttpMethod::GET,
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
-        }
+        })
     }
 }
 

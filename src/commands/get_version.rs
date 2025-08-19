@@ -1,6 +1,7 @@
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
@@ -10,14 +11,14 @@ use std::collections::HashMap;
 pub struct GetVersionCommand;
 impl SomfyApiRequestCommand for GetVersionCommand {
     type Response = GetVersionResponse;
-    fn to_request(&self) -> RequestData {
-        RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
+        Ok(RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/apiVersion".to_string(),
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
             method: HttpMethod::GET,
-        }
+        })
     }
 }
 

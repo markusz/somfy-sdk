@@ -2,6 +2,7 @@ use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::Gateway;
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -11,14 +12,14 @@ pub struct GetGatewaysCommand;
 
 impl SomfyApiRequestCommand for GetGatewaysCommand {
     type Response = GetGatewaysResponse;
-    fn to_request(&self) -> RequestData {
-        RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
+        Ok(RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/setup/gateways".to_string(),
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
             method: HttpMethod::GET,
-        }
+        })
     }
 }
 

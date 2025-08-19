@@ -2,6 +2,7 @@ use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::EventListener;
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -11,14 +12,14 @@ pub struct RegisterEventListenerCommand;
 
 impl SomfyApiRequestCommand for RegisterEventListenerCommand {
     type Response = RegisterEventListenerResponse;
-    fn to_request(&self) -> RequestData {
-        RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
+        Ok(RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/events/register".to_string(),
             method: HttpMethod::POST,
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
-        }
+        })
     }
 }
 
@@ -41,7 +42,7 @@ fn parse_valid_body_correctly() {
 #[test]
 fn generates_correct_request_path() {
     let command = RegisterEventListenerCommand;
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/events/register"

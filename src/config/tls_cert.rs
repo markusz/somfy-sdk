@@ -7,7 +7,7 @@ use std::path::PathBuf;
 pub(crate) struct TlsCertHandler;
 
 const REMOTE_CERT_LOCATION: &str = "https://ca.overkiz.com/overkiz-root-ca-2048.crt";
-const LOCAL_CERT_LOCATION_FOLDER: &str = ".somfycli";
+const LOCAL_CERT_LOCATION_FOLDER: &str = ".somfy_sdk";
 const LOCAL_CERT_LOCATION_FILENAME: &str = "cert.crt";
 
 impl TlsCertHandler {

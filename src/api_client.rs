@@ -41,6 +41,7 @@ pub enum HttpProtocol {
 pub enum CertificateHandling {
     CertProvided(String),
     DefaultCert,
+    NoCustomCert,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -79,15 +80,17 @@ impl ApiClient {
     where
         C: SomfyApiRequestCommand,
     {
-        let cert: Certificate = self.ensure_cert().await?;
         let headers = self.generate_default_headers()?;
 
-        let client = ClientBuilder::new()
-            .add_root_certificate(cert)
-            .default_headers(headers)
-            .build()?;
+        let mut client = ClientBuilder::new().default_headers(headers);
 
-        let request_data: RequestData = command.to_request();
+        if let Some(certificate) = self.ensure_cert().await? {
+            client = client.add_root_certificate(certificate)
+        }
+
+        let client = client.build()?;
+
+        let request_data: RequestData = command.to_request()?;
         let path = self.generate_base_url(&request_data);
 
         let response: Result<Response, reqwest::Error> = match request_data.method {
@@ -111,15 +114,20 @@ impl ApiClient {
         C::Response::from_body(body.as_str())
     }
 
-    async fn ensure_cert(&self) -> Result<Certificate, RequestError> {
+    async fn ensure_cert(&self) -> Result<Option<Certificate>, RequestError> {
         Ok(match &self.config.cert_handling {
             CertificateHandling::CertProvided(path) => {
                 let crt = std::fs::read(path).map_err(|_| RequestError::Cert)?;
-                Certificate::from_pem(&crt)?
+                Some(Certificate::from_pem(&crt)?)
             }
-            CertificateHandling::DefaultCert => TlsCertHandler::ensure_local_certificate()
-                .await
-                .map_err(|_| RequestError::Cert)?,
+            CertificateHandling::DefaultCert => {
+                let cert = TlsCertHandler::ensure_local_certificate()
+                    .await
+                    .map_err(|_| RequestError::Cert)?;
+
+                Some(cert)
+            }
+            CertificateHandling::NoCustomCert => None,
         })
     }
 

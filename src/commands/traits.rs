@@ -22,14 +22,25 @@ pub struct RequestData {
 }
 
 impl RequestData {
-    pub(crate) fn get_content_length(&self) -> String {
+    pub fn get_content_length(&self) -> String {
         self.body.as_bytes().unwrap_or_default().len().to_string()
+    }
+
+    pub fn default_post_headers() -> Result<HeaderMap, RequestError> {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "content-type",
+            reqwest::header::HeaderValue::from_str("application/json")
+                .map_err(|e| RequestError::Server(e.into()))?,
+        );
+
+        Ok(headers)
     }
 }
 
 pub trait SomfyApiRequestCommand {
     type Response: SomfyApiRequestResponse;
-    fn to_request(&self) -> RequestData;
+    fn to_request(&self) -> Result<RequestData, RequestError>;
 }
 
 pub trait SomfyApiRequestResponse: DeserializeOwned {

@@ -10,19 +10,25 @@ pub struct ExecuteActionGroupCommand {
 #[cfg(feature = "generic-exec")]
 impl crate::commands::traits::SomfyApiRequestCommand for ExecuteActionGroupCommand {
     type Response = ExecuteActionGroupResponse;
-    fn to_request(&self) -> crate::commands::traits::RequestData {
-        let body_json = serde_json::to_string(&self.action_group).unwrap_or_default();
+    fn to_request(
+        &self,
+    ) -> Result<crate::commands::traits::RequestData, crate::err::http::RequestError> {
+        let body_json = serde_json::to_string(&self.action_group)?;
 
         let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert("content-type", "application/json".parse().unwrap());
+        headers.insert(
+            "content-type",
+            reqwest::header::HeaderValue::from_str("application/json")
+                .map_err(|e| crate::err::http::RequestError::Server(e.into()))?,
+        );
 
-        crate::commands::traits::RequestData {
+        Ok(crate::commands::traits::RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/exec/apply".to_string(),
             method: crate::commands::traits::HttpMethod::POST,
             body: reqwest::Body::from(body_json),
             query_params: std::collections::HashMap::default(),
             header_map: headers,
-        }
+        })
     }
 }
 
@@ -65,7 +71,7 @@ mod execute_action_group {
         let command = crate::commands::execute_action_group::ExecuteActionGroupCommand {
             action_group: execute_request,
         };
-        let request_data = command.to_request();
+        let request_data = command.to_request().expect("should not err");
         assert_eq!(
             request_data.path,
             "/enduser-mobile-web/1/enduserAPI/exec/apply"
@@ -91,10 +97,15 @@ mod execute_action_group {
         let command = crate::commands::execute_action_group::ExecuteActionGroupCommand {
             action_group: execute_request,
         };
-        let request_data = command.to_request();
+        let request_data = command.to_request().expect("should not err");
 
         let content_type = request_data.header_map.get("content-type");
-        assert!(content_type.is_some());
-        assert_eq!(content_type.unwrap().to_str().unwrap(), "application/json");
+        assert_eq!(
+            content_type
+                .expect("should be Some")
+                .to_str()
+                .expect("should unwrap"),
+            "application/json"
+        );
     }
 }

@@ -2,6 +2,7 @@ use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::ActionGroupExecution;
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -11,14 +12,14 @@ pub struct GetCurrentExecutionsCommand;
 
 impl SomfyApiRequestCommand for GetCurrentExecutionsCommand {
     type Response = GetCurrentExecutionsResponse;
-    fn to_request(&self) -> RequestData {
-        RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
+        Ok(RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/exec/current".to_string(),
             method: HttpMethod::GET,
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
-        }
+        })
     }
 }
 
@@ -76,7 +77,7 @@ fn parse_empty_array_correctly() {
 #[test]
 fn generates_correct_request_path() {
     let command = GetCurrentExecutionsCommand;
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/exec/current"

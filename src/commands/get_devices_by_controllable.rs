@@ -1,6 +1,7 @@
 use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -13,9 +14,9 @@ pub struct GetDevicesByControllableCommand<'a> {
 
 impl SomfyApiRequestCommand for GetDevicesByControllableCommand<'_> {
     type Response = GetDevicesByControllableResponse;
-    fn to_request(&self) -> RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
         let encoded_controllable_name = encode(self.controllable_name);
-        RequestData {
+        Ok(RequestData {
             path: format!(
                 "/enduser-mobile-web/1/enduserAPI/setup/devices/controllables/{encoded_controllable_name}"
             ),
@@ -23,7 +24,7 @@ impl SomfyApiRequestCommand for GetDevicesByControllableCommand<'_> {
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
-        }
+        })
     }
 }
 
@@ -51,7 +52,7 @@ fn url_encoding_works_correctly() {
     let command = GetDevicesByControllableCommand {
         controllable_name: "io:StackComponent",
     };
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/setup/devices/controllables/io%3AStackComponent"

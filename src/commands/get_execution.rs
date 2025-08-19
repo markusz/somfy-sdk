@@ -15,15 +15,15 @@ pub struct GetExecutionCommand<'a> {
 
 impl SomfyApiRequestCommand for GetExecutionCommand<'_> {
     type Response = GetExecutionResponse;
-    fn to_request(&self) -> RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
         let encoded_execution_id = encode(self.execution_id);
-        RequestData {
+        Ok(RequestData {
             path: format!("/enduser-mobile-web/1/enduserAPI/exec/current/{encoded_execution_id}"),
             method: HttpMethod::GET,
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
-        }
+        })
     }
 }
 
@@ -101,7 +101,7 @@ fn generates_correct_request_path() {
     let command = GetExecutionCommand {
         execution_id: "exec-12345678-1234-5678-9012-123456789012",
     };
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/exec/current/exec-12345678-1234-5678-9012-123456789012"
@@ -114,7 +114,7 @@ fn url_encoding_works_correctly() {
     let command = GetExecutionCommand {
         execution_id: "test-execution-id-with-special-chars!@#",
     };
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/exec/current/test-execution-id-with-special-chars%21%40%23"

@@ -2,6 +2,7 @@ use crate::commands::traits::{
     HttpMethod, RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse,
 };
 use crate::commands::types::CancelExecutionResult;
+use crate::err::http::RequestError;
 use reqwest::header::HeaderMap;
 use reqwest::Body;
 use std::collections::HashMap;
@@ -14,9 +15,9 @@ pub struct CancelExecutionCommand<'a> {
 
 impl SomfyApiRequestCommand for CancelExecutionCommand<'_> {
     type Response = CancelExecutionResponse;
-    fn to_request(&self) -> RequestData {
+    fn to_request(&self) -> Result<RequestData, RequestError> {
         let encoded_execution_id = encode(self.execution_id);
-        RequestData {
+        Ok(RequestData {
             path: format!(
                 "/enduser-mobile-web/1/enduserAPI/exec/current/setup/{encoded_execution_id}"
             ),
@@ -24,7 +25,7 @@ impl SomfyApiRequestCommand for CancelExecutionCommand<'_> {
             body: Body::default(),
             query_params: HashMap::default(),
             header_map: HeaderMap::default(),
-        }
+        })
     }
 }
 
@@ -45,7 +46,7 @@ fn generates_correct_request_path() {
     let command = CancelExecutionCommand {
         execution_id: "exec-12345678-1234-5678-9012-123456789012",
     };
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/exec/current/setup/exec-12345678-1234-5678-9012-123456789012"
@@ -58,7 +59,7 @@ fn url_encoding_works_correctly() {
     let command = CancelExecutionCommand {
         execution_id: "test-execution-id-with-special-chars!@#",
     };
-    let request_data = command.to_request();
+    let request_data = command.to_request().expect("should not err");
     assert_eq!(
         request_data.path,
         "/enduser-mobile-web/1/enduserAPI/exec/current/setup/test-execution-id-with-special-chars%21%40%23"

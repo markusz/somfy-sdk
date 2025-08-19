@@ -26,7 +26,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-somfy_sdk = { package = "somfy-sdk", version = "0.1.0", path = "path/to/somfy-sdk-cli/sdk" }
+somfy_sdk = { package = "somfy-sdk", version = "0.2.0" }
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -110,6 +110,47 @@ let config = ApiClientConfig {
 let client = ApiClient::new(config);
 ```
 
+### Certificate Handling
+
+Somfy gateways use self-signed certificates, requiring specific certificate handling strategies. The SDK provides three approaches:
+
+#### Certificate Strategies
+
+1. **`DefaultCert`** (Recommended) - Automatically downloads (to `$HOME/.somfy_sdk/cert.crt`) and trusts the gateway's certificate:
+   ```rust
+   let config = ApiClientConfig {
+       cert_handling: CertificateHandling::DefaultCert,
+       // ... other config
+   };
+   ```
+
+2. **`CertProvided(path)`** - Use a manually provided certificate file:
+   ```rust
+   let config = ApiClientConfig {
+       cert_handling: CertificateHandling::CertProvided("/path/to/cert.pem".to_string()),
+       // ... other config
+   };
+   ```
+
+3. **`NoCustomCert`** - Skip certificate validation entirely:
+   ```rust
+   let config = ApiClientConfig {
+       cert_handling: CertificateHandling::NoCustomCert,
+       // ... other config
+   };
+   ```
+
+#### Default Behavior
+
+The `ApiClient::from()` convenience method automatically uses `DefaultCert`, which handles the self-signed certificate by downloading it and adding it to the trust chain:
+
+```rust
+// This uses DefaultCert automatically
+let client = ApiClient::from("0000-1111-2222", "your-api-key");
+```
+
+**Note:** `NoCustomCert` will fail for most scenarios since Somfy gateways use self-signed certificates that cannot be validated against standard certificate authorities.
+
 ## Feature Flags
 
 The SDK uses feature flags to control access to potentially dangerous functionality:
@@ -124,7 +165,7 @@ Add the feature to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-somfy_sdk = { package = "somfy-sdk", version = "0.1.0", path = "path/to/somfy-sdk-cli/sdk", features = ["generic-exec"]}
+somfy_sdk = { package = "somfy-sdk", version = "0.2.0", features = ["generic-exec"]}
 ```
 
 #### Why is this Feature Gated?
@@ -292,10 +333,12 @@ Run the SDK tests:
 
 ```bash
 # Run SDK tests only
-cargo test -p sdk
+cargo test --lib
 
-# Run tests with output
-cargo test -p sdk -- --nocapture
+# Run Integration tests against local mock server
+# json-server
+json-server ./tests/mock_api/db.json --routes ./tests/mock_api/routes.json --port 3000 --host 0.0.0.0  
+cargo test --test http_tests
 ```
 
 ## Architecture
@@ -387,63 +430,72 @@ client.execute(cmd).await?;
 Here's how to create a domain-specific command that prevents dangerous mistakes:
 
 ```rust
-use serde::{Serialize, Deserialize};
+use reqwest::Body;
+use somfy_sdk::api_client::ApiClient;
 use somfy_sdk::commands::execute_action_group::ExecuteActionGroupResponse;
-use somfy_sdk::commands::traits::{RequestData, SomfyApiRequestCommand, SomfyApiRequestResponse, HttpMethod};
-use reqwest::{Body, header::HeaderMap};
+use somfy_sdk::commands::traits::{HttpMethod, RequestData, SomfyApiRequestCommand};
+use somfy_sdk::commands::types::{Action, ActionGroup, Command};
+use somfy_sdk::err::http::RequestError;
 use std::collections::HashMap;
 
 // Type-safe command for a specific device with validation
 #[derive(Debug, Clone, PartialEq)]
 pub struct CloseLivingRoomShuttersCommand {
-    pub position: u8,  // 0-100, validated at compile time via newtypes if needed
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-struct SetClosureAction {
-    position: u8,
+    pub position: u8, // 0-100, validated at compile time via newtypes if needed
 }
 
 impl SomfyApiRequestCommand for CloseLivingRoomShuttersCommand {
     type Response = ExecuteActionGroupResponse;
 
-    fn to_request(&self) -> RequestData {
-        // Hard-coded device URL - impossible to target wrong device
-        const LIVING_ROOM_SHUTTERS_URL: &str = "io://0000-1111-2222/12345678";
-        
+    fn to_request(&self) -> Result<RequestData, RequestError> {
+        // Hard-coded device URLs - impossible to target wrong devices
+        const LIVING_ROOM_SHUTTER_EAST_URL: &str = "io://0000-1111-2222/12345678";
+        const LIVING_ROOM_SHUTTER_SOUTH_URL: &str = "io://0000-1111-2222/87654321";
+
         // Validate position at runtime (or use newtypes for compile-time validation)
         let position = self.position.min(100);
-        
-        let action = serde_json::json!({
-            "label": "Close living room shutters",
-            "actions": [{
-                "deviceURL": LIVING_ROOM_SHUTTERS_URL,
-                "commands": [{
-                    "name": "setClosure",
-                    "parameters": [position.to_string()]
-                }]
-            }]
-        });
 
-        let mut headers = HeaderMap::new();
-        headers.insert("Content-Type", "application/json".parse().unwrap());
+        let action_group = ActionGroup {
+            label: Some("Close living room shutters".to_string()),
+            actions: vec![
+                Action {
+                    device_url: LIVING_ROOM_SHUTTER_EAST_URL.to_string(),
+                    commands: vec![Command {
+                        name: "setClosure".to_string(),
+                        parameters: vec![position.to_string()],
+                    }],
+                },
+                Action {
+                    device_url: LIVING_ROOM_SHUTTER_SOUTH_URL.to_string(),
+                    commands: vec![Command {
+                        name: "setClosure".to_string(),
+                        parameters: vec![position.to_string()],
+                    }],
+                },
+            ],
+        };
 
-        RequestData {
+        let body_json = serde_json::to_string(&action_group)?;
+
+        Ok(RequestData {
             path: "/enduser-mobile-web/1/enduserAPI/exec/apply".to_string(),
             method: HttpMethod::POST,
-            body: Body::from(action.to_string()),
+            body: Body::from(body_json),
             query_params: HashMap::new(),
-            header_map: headers,
-        }
+            header_map: RequestData::default_post_headers()?,
+        })
     }
 }
 
-// Usage - impossible to misuse!
-let client = ApiClient::from("gateway-id", "api-key");
-let response = client.execute(CloseLivingRoomShuttersCommand { 
-    position: 75 
-}).await?;
-println!("Started execution: {}", response.exec_id);
+#[tokio::main]
+async fn main() -> Result<(), RequestError> {
+    let client = ApiClient::from("gateway-id", "api-key");
+    let response = client
+        .execute(CloseLivingRoomShuttersCommand { position: 75 })
+        .await?;
+    println!("Started execution: {}", response.exec_id);
+    Ok(())
+}
 ```
 
 #### Handling API Quirks and Custom Response Processing
