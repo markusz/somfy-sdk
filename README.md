@@ -99,7 +99,7 @@ let client = ApiClient::from("your-gateway-id", "your-api-key").await?;
 For more control, use the full configuration:
 
 ```rust
-use sdk::api_client::{ApiClient, ApiClientConfig, HttpProtocol, CertificateHandling};
+use somfy_sdk::api_client::{ApiClient, ApiClientConfig, HttpProtocol, CertificateHandling};
 
 let config = ApiClientConfig {
     url: "gateway-0000-1111-2222.local".to_string(),
@@ -282,19 +282,19 @@ client.unregister_event_listener(&listener.id).await?;
 ### Action Execution
 
 ```rust
-use sdk::commands::types::{Action, Command, ExecuteRequest};
+use somfy_sdk::commands::types::{Action, Command, ExecuteRequest};
 
 let actions = vec![Action {
     device_url: "io://0000-1111-2222/12345678".to_string(),
     commands: vec![Command {
         name: "open".to_string(),
         parameters: vec![],
-    }],
+    }]
 }];
 
 let request = ExecuteRequest {
     label: Some("Open blinds".to_string()),
-    actions,
+    actions
 };
 
 let execution = client.execute_actions(request).await?;
@@ -310,7 +310,7 @@ println!("Execution status: {:?}", execution_details);
 The SDK provides comprehensive error handling through the `RequestError` enum:
 
 ```rust
-use sdk::err::http::RequestError;
+use somfy_sdk::err::http::RequestError;
 
 match client.get_version().await {
     Ok(version) => println!("Version: {}", version.protocol_version),
@@ -417,7 +417,7 @@ let request = ActionGroup {
             name: "writeManufacturerData".to_string(),  // 💀 Running this can really ruin your day
             parameters: vec!["some-config".to_string()],
         }],
-    }],
+    }]
 };
 
 api_client.execute_actions(request).await
