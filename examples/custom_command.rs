@@ -57,7 +57,7 @@ impl SomfyApiRequestCommand for CloseLivingRoomShuttersCommand {
 
 #[tokio::main]
 async fn main() -> Result<(), RequestError> {
-    let client = ApiClient::from("gateway-id", "api-key");
+    let client = ApiClient::from("gateway-id", "api-key").await?;
     let response = client
         .execute(CloseLivingRoomShuttersCommand { position: 75 })
         .await?;

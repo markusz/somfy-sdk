@@ -213,3 +213,65 @@ pub struct CancelAllExecutionsResult {
 pub struct CancelExecutionResult {
     // Empty object, keeping for type safety
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_device_attribute_procedure_display() {
+        let procedure = DeviceAttributeProcedure {
+            procedure_name: "test_procedure".to_string(),
+            params: None,
+        };
+        assert_eq!(procedure.to_string(), "test_procedure");
+    }
+
+    #[test]
+    fn test_device_attribute_value_display_string() {
+        let value = DeviceAttributeValue::String("test_string".to_string());
+        assert_eq!(value.to_string(), "test_string");
+    }
+
+    #[test]
+    fn test_device_attribute_value_display_states() {
+        let value = DeviceAttributeValue::States(vec!["state1".to_string(), "state2".to_string()]);
+        assert_eq!(value.to_string(), "state1, state2");
+    }
+
+    #[test]
+    fn test_device_attribute_value_display_procedures() {
+        let procedures = vec![
+            DeviceAttributeProcedure {
+                procedure_name: "proc1".to_string(),
+                params: None,
+            },
+            DeviceAttributeProcedure {
+                procedure_name: "proc2".to_string(),
+                params: None,
+            },
+        ];
+        let value = DeviceAttributeValue::Procedures(procedures);
+        assert_eq!(value.to_string(), "proc1, proc2");
+    }
+
+    #[test]
+    fn test_device_display() {
+        let device = Device {
+            device_url: "io://test-device".to_string(),
+            label: "Test Device".to_string(),
+            controllable_name: "TestController".to_string(),
+            subsystem_id: 1,
+            device_type: 2,
+            available: true,
+            synced: true,
+            enabled: true,
+            states: vec![],
+            attributes: vec![],
+        };
+        assert_eq!(
+            device.to_string(),
+            "Test Device|io://test-device|TestController"
+        );
+    }
+}

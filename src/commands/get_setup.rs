@@ -28,6 +28,29 @@ pub type GetSetupResponse = Setup;
 impl SomfyApiRequestResponse for GetSetupResponse {}
 
 #[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_request() {
+        let command = GetSetupCommand;
+        let request = command
+            .to_request()
+            .expect("should create valid request data");
+
+        assert_eq!(request.path, "/enduser-mobile-web/1/enduserAPI/setup");
+        assert_eq!(request.method, HttpMethod::GET);
+        assert!(request.query_params.is_empty());
+        assert!(request.header_map.is_empty());
+        assert!(request
+            .body
+            .as_bytes()
+            .expect("should read body bytes")
+            .is_empty());
+    }
+}
+
+#[cfg(test)]
 #[test]
 fn parse_valid_body_correctly() {
     let body = r#"{
@@ -62,6 +85,3 @@ fn parse_valid_body_correctly() {
     assert_eq!(resp.gateways[0].gateway_id, "0000-1111-2222");
     assert_eq!(resp.devices[0].label, "Test Device");
 }
-
-#[test]
-fn errs_for_invalid_body() {}

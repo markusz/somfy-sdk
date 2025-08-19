@@ -72,7 +72,7 @@
         "attributes": [
           {
             "value": "Somfy",
-            "name": "core:Manufacturer", 
+            "name": "core:Manufacturer",
             "type": 3
           }
         ],
@@ -206,7 +206,13 @@
   ],
   "POST_unregister_event": {},
   "POST_execute_actions": {
-    "id": "exec-12345678-1234-5678-9012-123456789012"
+    "label": "Some Test",
+    "actions": [
+      {
+        "deviceURL": "mock-device",
+        "commands": []
+      }
+    ]
   },
   "GET_current_executions": [
     {
@@ -236,7 +242,7 @@
   "GET_current_execution": {
     "id": "exec-12345678-1234-5678-9012-123456789012",
     "owner": "mock-user",
-    "executionType": "HIGH_PRIORITY", 
+    "executionType": "HIGH_PRIORITY",
     "executionSubType": "MANUAL",
     "description": "Mock execution",
     "startTime": 1703000000000,

@@ -51,3 +51,51 @@ pub trait SomfyApiRequestResponse: DeserializeOwned {
         Ok(serde_json::from_str(body)?)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_request_data_defaults() {
+        let request = RequestData::default();
+
+        assert_eq!(request.method, HttpMethod::GET);
+        assert_eq!(request.path, "");
+        assert!(request.query_params.is_empty());
+        assert!(request.header_map.is_empty());
+        assert!(request
+            .body
+            .as_bytes()
+            .expect("should read body bytes")
+            .is_empty());
+    }
+
+    #[test]
+    fn test_http_method_default() {
+        let method = HttpMethod::default();
+        assert_eq!(method, HttpMethod::GET);
+    }
+
+    #[test]
+    fn test_get_content_length_empty_body() {
+        let request = RequestData::default();
+        assert_eq!(request.get_content_length(), "0");
+    }
+
+    #[test]
+    fn test_get_content_length_with_body() {
+        let request = RequestData {
+            body: reqwest::Body::from("test body"),
+            ..Default::default()
+        };
+        assert_eq!(request.get_content_length(), "9");
+    }
+
+    #[test]
+    fn test_default_post_headers() {
+        let headers =
+            RequestData::default_post_headers().expect("should create default post headers");
+        assert_eq!(headers.get("content-type").unwrap(), "application/json");
+    }
+}

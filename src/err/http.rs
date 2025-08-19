@@ -105,3 +105,56 @@ impl From<ReqwestError> for RequestError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_serde_error() {
+        let serde_error = serde_json::from_str::<i32>("invalid json").unwrap_err();
+        let request_error = RequestError::from(serde_error);
+
+        match request_error {
+            RequestError::Body(_) => {}
+            _ => panic!("Expected Body error"),
+        }
+    }
+
+    #[test]
+    fn test_from_custom_server_error() {
+        let custom_error = CustomServerError("test error".to_string());
+        let request_error = RequestError::from(custom_error);
+
+        match request_error {
+            RequestError::Server(_) => {}
+            _ => panic!("Expected Server error"),
+        }
+    }
+
+    #[test]
+    fn test_from_request_response_mapping_error() {
+        let mapping_error = RequestResponseMappingError;
+        let request_error = RequestError::from(mapping_error);
+
+        match request_error {
+            RequestError::Server(_) => {}
+            _ => panic!("Expected Server error"),
+        }
+    }
+
+    #[test]
+    fn test_error_display() {
+        let custom_error = CustomServerError("test message".to_string());
+        assert_eq!(
+            custom_error.to_string(),
+            "server error occurred: test message"
+        );
+
+        let mapping_error = RequestResponseMappingError;
+        assert_eq!(
+            mapping_error.to_string(),
+            "error in request / response mapping"
+        );
+    }
+}

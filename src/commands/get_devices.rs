@@ -26,3 +26,56 @@ impl SomfyApiRequestCommand for GetDevicesCommand {
 pub type GetDevicesResponse = Vec<Device>;
 
 impl SomfyApiRequestResponse for GetDevicesResponse {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_request() {
+        let command = GetDevicesCommand;
+        let request = command
+            .to_request()
+            .expect("should create valid request data");
+
+        assert_eq!(
+            request.path,
+            "/enduser-mobile-web/1/enduserAPI/setup/devices"
+        );
+        assert_eq!(request.method, HttpMethod::GET);
+        assert!(request.query_params.is_empty());
+        assert!(request.header_map.is_empty());
+        assert!(request
+            .body
+            .as_bytes()
+            .expect("should read body bytes")
+            .is_empty());
+    }
+
+    #[test]
+    fn test_from_body() {
+        let body = r#"[
+            {
+                "controllableName": "io:ExteriorVenetianBlindIOComponent",
+                "deviceURL": "io://0812-2424-9999/246132",
+                "label": "Test Device",
+                "available": true,
+                "enabled": true,
+                "synced": true,
+                "subsystemId": 0,
+                "states": [],
+                "attributes": [],
+                "type": 1
+            }
+        ]"#;
+
+        let response =
+            GetDevicesResponse::from_body(body).expect("should parse valid devices response");
+        assert_eq!(response.len(), 1);
+        assert_eq!(response[0].device_url, "io://0812-2424-9999/246132");
+        assert_eq!(
+            response[0].controllable_name,
+            "io:ExteriorVenetianBlindIOComponent"
+        );
+    }
+}

@@ -37,6 +37,34 @@ pub type GetDeviceResponse = Device;
 impl SomfyApiRequestResponse for GetDeviceResponse {}
 
 #[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_request() {
+        let command = GetDeviceCommand {
+            device_url: "io://0812-2424-9999/246132",
+        };
+        let request = command
+            .to_request()
+            .expect("should create valid request data");
+
+        assert_eq!(
+            request.path,
+            "/enduser-mobile-web/1/enduserAPI/setup/devices/io%3A%2F%2F0812-2424-9999%2F246132"
+        );
+        assert_eq!(request.method, HttpMethod::GET);
+        assert!(request.query_params.is_empty());
+        assert!(request.header_map.is_empty());
+        assert!(request
+            .body
+            .as_bytes()
+            .expect("should read body bytes")
+            .is_empty());
+    }
+}
+
+#[cfg(test)]
 mod device_json_parser {
     use crate::commands::types::Device;
     use std::path::PathBuf;

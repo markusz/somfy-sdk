@@ -1,6 +1,6 @@
 # Somfy SDK
 
-A Rust library providing type-safe, async access to the Somfy TaHoma Local API for controlling smart home devices.
+A Rust library providing type-safe, async access to the Somfy API for controlling smart home devices.
 
 [![Unit & Integration Tests](https://github.com/markusz/somfy-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/markusz/somfy-sdk/actions/workflows/tests.yml)
 [![Crates.io](https://img.shields.io/crates/v/somfy-sdk-cli.svg)](https://crates.io/crates/somfy-sdk-cli)
@@ -8,12 +8,12 @@ A Rust library providing type-safe, async access to the Somfy TaHoma Local API f
 
 ## Overview
 
-The SDK provides a comprehensive, type-safe interface for interacting with Somfy smart home devices through the TaHoma Local API. It supports device discovery, state management, event handling, and action execution with built-in error handling and TLS support for self-signed certificates.
+The SDK provides a comprehensive, type-safe interface for interacting with Somfy smart home devices through the [Somfy API](https://somfy-developer.github.io/Somfy-TaHoma-Developer-Mode/#/). It supports device discovery, state management, event handling, and action execution with built-in error handling and TLS support for self-signed certificates.
 
 ## Features
 
 - **Type-safe API client** with async support using Tokio
-- **Comprehensive API coverage** - all Somfy TaHoma Local API endpoints
+- **Comprehensive API coverage** - all Somfy API endpoints
 - **Extensible command system** for adding new API endpoints
 - **Robust error handling** with custom error types
 - **TLS/SSL support** with custom certificate handling
@@ -26,7 +26,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-somfy_sdk = { package = "somfy-sdk", version = "0.2.0" }
+somfy_sdk = { package = "somfy-sdk", version = "0.2" }
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -36,12 +36,12 @@ tokio = { version = "1.0", features = ["full"] }
 use sdk::api_client::ApiClient;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), RequestError> {
     // Initialize logging
     env_logger::init();
     
     // Create API client using gateway ID and API key
-    let client = ApiClient::from("0000-1111-2222", "your-api-key");
+    let client = ApiClient::from("0000-1111-2222", "your-api-key").await?;
 
     // Get API version
     let version = client.get_version().await?;
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Supported API Endpoints
 
-This SDK implements the complete [Somfy TaHoma Local API](https://somfy-developer.github.io/Somfy-TaHoma-Developer-Mode/openapi.yaml):
+This SDK implements the complete [Somfy API](https://somfy-developer.github.io/Somfy-TaHoma-Developer-Mode/openapi.yaml):
 
 | Category | Endpoint | Method | SDK Method | Description |
 |----------|----------|--------|------------|-------------|
@@ -89,7 +89,7 @@ The simplest way to create a client:
 ```rust
 // Gateway ID format: "0000-1111-2222" 
 // This automatically configures HTTPS, port 8443, and certificate handling
-let client = ApiClient::from("your-gateway-id", "your-api-key");
+let client = ApiClient::from("your-gateway-id", "your-api-key").await?;
 ```
 
 ### Advanced Configuration
@@ -107,16 +107,17 @@ let config = ApiClientConfig {
     cert_handling: CertificateHandling::DefaultCert,
 };
 
-let client = ApiClient::new(config);
+let client = ApiClient::new(config).await?;
 ```
 
 ### Certificate Handling
 
 Somfy gateways use self-signed certificates, requiring specific certificate handling strategies. The SDK provides three approaches:
 
-#### Certificate Strategies
+#### **DefaultCert** (Recommended & Default)
 
-1. **`DefaultCert`** (Recommended) - Automatically downloads (to `$HOME/.somfy_sdk/cert.crt`) and trusts the gateway's certificate:
+Automatically transparently downloads the root CA from [here](https://ca.overkiz.com/overkiz-root-ca-2048.crt) to `$HOME/.somfy_sdk/cert.crt` and trusts it. 
+The certificate will be cached indefinitely and will not be checked for expiry. Delete the local file to trigger a redownload.
    ```rust
    let config = ApiClientConfig {
        cert_handling: CertificateHandling::DefaultCert,
@@ -124,7 +125,17 @@ Somfy gateways use self-signed certificates, requiring specific certificate hand
    };
    ```
 
-2. **`CertProvided(path)`** - Use a manually provided certificate file:
+`DefaultCert` is the default strategy used for the shorthand `ApiClient::from(..)`.
+
+```rust
+// This uses DefaultCert automatically
+let client = ApiClient::from("0000-1111-2222", "your-api-key");
+```
+
+#### **CertProvided(path)**
+
+Use a manually provided certificate file. 
+The cert will not be cached and needs to be provided for every instantiation of `ApiClient`
    ```rust
    let config = ApiClientConfig {
        cert_handling: CertificateHandling::CertProvided("/path/to/cert.pem".to_string()),
@@ -132,7 +143,10 @@ Somfy gateways use self-signed certificates, requiring specific certificate hand
    };
    ```
 
-3. **`NoCustomCert`** - Skip certificate validation entirely:
+#### **NoCustomCert**
+
+Do not add a root certificate to the reqwest trust chain.
+This will only work against endpoints that present certificates of trusted CAs. somfy-sdk uses `reqwest` with `rustls-tls-native-roots` which respects certificates trusted at the OS level
    ```rust
    let config = ApiClientConfig {
        cert_handling: CertificateHandling::NoCustomCert,
@@ -140,35 +154,24 @@ Somfy gateways use self-signed certificates, requiring specific certificate hand
    };
    ```
 
-#### Default Behavior
-
-The `ApiClient::from()` convenience method automatically uses `DefaultCert`, which handles the self-signed certificate by downloading it and adding it to the trust chain:
-
-```rust
-// This uses DefaultCert automatically
-let client = ApiClient::from("0000-1111-2222", "your-api-key");
-```
-
-**Note:** `NoCustomCert` will fail for most scenarios since Somfy gateways use self-signed certificates that cannot be validated against standard certificate authorities.
-
 ## Feature Flags
 
 The SDK uses feature flags to control access to potentially dangerous functionality:
 
-### `generic-exec` Feature
+### `generic-exec` feature
 
 The `execute_actions()` method is gated behind the `generic-exec` feature flag because it provides raw access to the `/exec/apply` endpoint, which can potentially harm your Somfy devices if used incorrectly.
 
-#### Enabling the Feature
+#### Enabling the feature
 
 Add the feature to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-somfy_sdk = { package = "somfy-sdk", version = "0.2.0", features = ["generic-exec"]}
+somfy_sdk = { package = "somfy-sdk", version = "0.2", features = ["generic-exec"]}
 ```
 
-#### Why is this Feature Gated?
+#### Why is this feature gated?
 
 The generic execution API allows sending arbitrary commands to any device:
 
@@ -177,7 +180,7 @@ The generic execution API allows sending arbitrary commands to any device:
 let actions = vec![Action {
     device_url: "io://0000-1111-2222/12345678".to_string(),
     commands: vec![Command {
-        name: "writeManufacturerData".to_string(),  // Could brick your device!
+        name: "writeManufacturerData".to_string(),  // 💀 Danger!
         parameters: vec!["invalid-data".to_string()],
     }],
 }];
@@ -185,7 +188,7 @@ let actions = vec![Action {
 client.execute_actions(ExecuteRequest { 
     label: Some("Dangerous operation".to_string()), 
     actions 
-}).await?;
+}).await;
 ```
 
 #### Safer Alternative: Custom Commands
@@ -203,8 +206,8 @@ The main client for interacting with Somfy APIs:
 ```rust
 impl ApiClient {
     // Core client creation
-    pub fn new(config: ApiClientConfig) -> Self;
-    pub fn from(id: &str, api_key: &str) -> Self;
+    pub async fn new(config: ApiClientConfig) -> Result<Self, RequestError>;
+    pub async fn from(id: &str, api_key: &str) -> Result<Self, RequestError>;
     
     // System information
     pub async fn get_version(&self) -> Result<GetVersionCommandResponse, RequestError>;
@@ -336,7 +339,7 @@ Run the SDK tests:
 cargo test --lib
 
 # Run Integration tests against local mock server
-# json-server
+# Uses json-server@0.17.x
 json-server ./tests/mock_api/db.json --routes ./tests/mock_api/routes.json --port 3000 --host 0.0.0.0  
 cargo test --test http_tests
 ```
@@ -489,7 +492,7 @@ impl SomfyApiRequestCommand for CloseLivingRoomShuttersCommand {
 
 #[tokio::main]
 async fn main() -> Result<(), RequestError> {
-    let client = ApiClient::from("gateway-id", "api-key");
+    let client = ApiClient::from("gateway-id", "api-key").await?;
     let response = client
         .execute(CloseLivingRoomShuttersCommand { position: 75 })
         .await?;

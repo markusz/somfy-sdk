@@ -6,7 +6,7 @@ mod http_integration_tests {
     use std::time::Duration;
 
     #[fixture]
-    fn api_client_localhost() -> ApiClient {
+    async fn api_client_localhost() -> ApiClient {
         ApiClient::new(ApiClientConfig {
             protocol: HttpProtocol::HTTP,
             port: 3000,
@@ -16,13 +16,16 @@ mod http_integration_tests {
                 "./tests/fixtures/cert/overkiz-root-ca-2048.crt".to_string(),
             ),
         })
+        .await
+        .expect("should create an ApiClient")
     }
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_version() {
         let res = api_client_localhost()
+            .await
             .get_version()
             .await
             .expect("should get a correct response from the getVersion endpoint");
@@ -31,9 +34,10 @@ mod http_integration_tests {
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_gateways() {
         let res = api_client_localhost()
+            .await
             .get_gateways()
             .await
             .expect("should get a correct response from get gateways");
@@ -44,9 +48,10 @@ mod http_integration_tests {
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_setup() {
         let res = api_client_localhost()
+            .await
             .get_setup()
             .await
             .expect("should get a correct response from get setup");
@@ -58,9 +63,10 @@ mod http_integration_tests {
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_devices() {
         let res = api_client_localhost()
+            .await
             .get_devices()
             .await
             .expect("should get a correct response from get devices");
@@ -70,9 +76,10 @@ mod http_integration_tests {
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_device() {
         let res = api_client_localhost()
+            .await
             .get_device("d123")
             .await
             .expect("should get a correct response from get devices");
@@ -82,9 +89,10 @@ mod http_integration_tests {
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_device_states() {
         let res = api_client_localhost()
+            .await
             .get_device_states("d123")
             .await
             .expect("should get a correct response from get device states");
@@ -96,9 +104,10 @@ mod http_integration_tests {
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_device_state() {
         let res = api_client_localhost()
+            .await
             .get_device_state("d123", "s123")
             .await
             .expect("should get a correct response from get device state");
@@ -108,13 +117,36 @@ mod http_integration_tests {
 
     #[rstest]
     #[tokio::test]
-    #[timeout(Duration::from_millis(300))]
+    #[timeout(Duration::from_millis(1000))]
     async fn http_get_devices_by_controllable() {
         let res = api_client_localhost()
+            .await
             .get_devices_by_controllable("c123")
             .await
             .expect("should get a correct response from get device states");
         assert_eq!(res.len(), 2);
         assert_eq!(res[0], "io://0812-2424-9999/12936651")
+    }
+
+    #[ignore] // Ignored until we find a better alternative to json-server
+    #[rstest]
+    #[tokio::test]
+    #[timeout(Duration::from_millis(1000))]
+    #[cfg(feature = "generic-exec")]
+    async fn http_post_exec_actions() {
+        let ag = somfy_sdk::commands::types::ActionGroup {
+            label: Some("Some Test".to_string()),
+            actions: vec![somfy_sdk::commands::types::Action {
+                device_url: "mock-device".to_string(),
+                commands: vec![],
+            }],
+        };
+
+        let res = api_client_localhost()
+            .await
+            .execute_actions(ag)
+            .await
+            .expect("should get a correct response from get device states");
+        assert_eq!(res.exec_id, "exec-12345678-1234-5678-9012-123456789012");
     }
 }

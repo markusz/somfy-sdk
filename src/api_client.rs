@@ -30,7 +30,7 @@ use crate::config::tls_cert::TlsCertHandler;
 use crate::err::http::RequestError;
 use log::debug;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
-use reqwest::{Certificate, ClientBuilder, Response};
+use reqwest::{Certificate, Client, ClientBuilder, Response};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum HttpProtocol {
@@ -53,69 +53,107 @@ pub struct ApiClientConfig {
     pub api_key: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ApiClient {
     config: ApiClientConfig,
+    http_client: Client,
 }
 
 const DEFAULT_PORT: usize = 8443;
 
 impl ApiClient {
-    pub fn new(config: ApiClientConfig) -> Self {
+    pub async fn new(config: ApiClientConfig) -> Result<Self, RequestError> {
         debug!("Initialized ApiClient with Config: {config:?}");
-        ApiClient { config }
+        let http_client = Self::build_client(&config).await?;
+        Ok(Self {
+            config,
+            http_client,
+        })
     }
 
-    pub fn from(id: &str, api_key: &str) -> Self {
-        Self::new(ApiClientConfig {
+    pub async fn from(id: &str, api_key: &str) -> Result<Self, RequestError> {
+        let config = ApiClientConfig {
             url: format!("gateway-{id}.local"),
             port: DEFAULT_PORT,
             api_key: api_key.to_string(),
             protocol: HttpProtocol::HTTPS,
             cert_handling: CertificateHandling::DefaultCert,
-        })
+        };
+        Self::new(config).await
+    }
+
+    async fn build_client(config: &ApiClientConfig) -> Result<Client, RequestError> {
+        let headers = Self::generate_default_headers(config)?;
+        let mut client = ClientBuilder::new().default_headers(headers);
+
+        if let Some(certificate) = Self::ensure_cert(config).await? {
+            client = client.add_root_certificate(certificate)
+        }
+
+        Ok(client.build()?)
+    }
+
+    async fn make_post_request(
+        &self,
+        request_data: RequestData,
+    ) -> Result<Response, reqwest::Error> {
+        let content_len = &request_data.get_content_length();
+        let path = self.generate_base_url(&request_data);
+
+        self.http_client
+            .post(&path)
+            .body(request_data.body)
+            .header("content-length", content_len)
+            .header("content-type", "application/json")
+            .send()
+            .await?
+            .error_for_status()
+    }
+
+    async fn make_get_request(
+        &self,
+        request_data: RequestData,
+    ) -> Result<Response, reqwest::Error> {
+        let path = self.generate_base_url(&request_data);
+        self.http_client.get(&path).send().await?.error_for_status()
+    }
+
+    async fn make_delete_request(
+        &self,
+        request_data: RequestData,
+    ) -> Result<Response, reqwest::Error> {
+        let path = self.generate_base_url(&request_data);
+        self.http_client
+            .delete(&path)
+            .send()
+            .await?
+            .error_for_status()
+    }
+
+    async fn make_api_request(
+        &self,
+        request_data: RequestData,
+    ) -> Result<Response, reqwest::Error> {
+        match request_data.method {
+            HttpMethod::GET => self.make_get_request(request_data).await,
+            HttpMethod::POST => self.make_post_request(request_data).await,
+            HttpMethod::DELETE => self.make_delete_request(request_data).await,
+        }
     }
 
     pub async fn execute<C>(&self, command: C) -> Result<C::Response, RequestError>
     where
         C: SomfyApiRequestCommand,
     {
-        let headers = self.generate_default_headers()?;
+        let request_data = command.to_request()?;
+        let response = self.make_api_request(request_data).await?;
 
-        let mut client = ClientBuilder::new().default_headers(headers);
-
-        if let Some(certificate) = self.ensure_cert().await? {
-            client = client.add_root_certificate(certificate)
-        }
-
-        let client = client.build()?;
-
-        let request_data: RequestData = command.to_request()?;
-        let path = self.generate_base_url(&request_data);
-
-        let response: Result<Response, reqwest::Error> = match request_data.method {
-            HttpMethod::GET => client.get(&path).send().await?.error_for_status(),
-            HttpMethod::POST => {
-                let content_len = request_data.get_content_length();
-
-                client
-                    .post(&path)
-                    .body(request_data.body)
-                    .header("content-length", content_len)
-                    .header("content-type", "application/json")
-                    .send()
-                    .await?
-                    .error_for_status()
-            }
-            HttpMethod::DELETE => client.delete(&path).send().await?.error_for_status(),
-        };
-
-        let body = response?.text().await?;
+        let body = response.text().await?;
         C::Response::from_body(body.as_str())
     }
 
-    async fn ensure_cert(&self) -> Result<Option<Certificate>, RequestError> {
-        Ok(match &self.config.cert_handling {
+    async fn ensure_cert(config: &ApiClientConfig) -> Result<Option<Certificate>, RequestError> {
+        Ok(match &config.cert_handling {
             CertificateHandling::CertProvided(path) => {
                 let crt = std::fs::read(path).map_err(|_| RequestError::Cert)?;
                 Some(Certificate::from_pem(&crt)?)
@@ -144,11 +182,10 @@ impl ApiClient {
         path
     }
 
-    fn generate_default_headers(&self) -> Result<HeaderMap, RequestError> {
+    fn generate_default_headers(config: &ApiClientConfig) -> Result<HeaderMap, RequestError> {
         let mut headers = HeaderMap::new();
-        let bearer_token =
-            HeaderValue::from_str(format!("Bearer {}", self.config.api_key).as_str())
-                .map_err(|e| RequestError::Server(e.into()))?;
+        let bearer_token = HeaderValue::from_str(format!("Bearer {}", config.api_key).as_str())
+            .map_err(|e| RequestError::Server(e.into()))?;
         headers.insert(AUTHORIZATION, bearer_token);
         Ok(headers)
     }
@@ -266,19 +303,23 @@ mod api_client_tests {
     use rstest::*;
 
     #[fixture]
-    fn api_client() -> ApiClient {
+    async fn api_client() -> ApiClient {
         ApiClient::from("0000-1111-2222", "my_key")
+            .await
+            .expect("should create an ApiClient")
     }
 
-    #[test]
-    fn creates_api_client_with_new() {
+    #[tokio::test]
+    async fn creates_api_client_with_new() {
         let api_client = ApiClient::new(ApiClientConfig {
             protocol: HttpProtocol::HTTP,
             port: 2000,
             url: "somedomain.com".to_string(),
             api_key: "my_key".to_string(),
             cert_handling: CertificateHandling::DefaultCert,
-        });
+        })
+        .await
+        .expect("should create an ApiClient");
         assert_eq!(api_client.config.protocol, HttpProtocol::HTTP);
         assert_eq!(api_client.config.port, 2000);
         assert_eq!(api_client.config.url, "somedomain.com".to_string());
@@ -289,9 +330,11 @@ mod api_client_tests {
         );
     }
 
-    #[test]
-    fn creates_api_client_with_from() {
-        let api_client = ApiClient::from("0000-1111-2222", "my_key");
+    #[tokio::test]
+    async fn creates_api_client_with_from() {
+        let api_client = ApiClient::from("0000-1111-2222", "my_key")
+            .await
+            .expect("should create an ApiClient");
         assert_eq!(api_client.config.port, DEFAULT_PORT);
         assert_eq!(
             api_client.config.url,

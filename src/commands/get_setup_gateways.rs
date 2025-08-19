@@ -28,6 +28,51 @@ pub type GetGatewaysResponse = Vec<Gateway>;
 impl SomfyApiRequestResponse for GetGatewaysResponse {}
 
 #[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_request() {
+        let command = GetGatewaysCommand;
+        let request = command
+            .to_request()
+            .expect("should create valid request data");
+
+        assert_eq!(
+            request.path,
+            "/enduser-mobile-web/1/enduserAPI/setup/gateways"
+        );
+        assert_eq!(request.method, HttpMethod::GET);
+        assert!(request.query_params.is_empty());
+        assert!(request.header_map.is_empty());
+        assert!(request
+            .body
+            .as_bytes()
+            .expect("should read body bytes")
+            .is_empty());
+    }
+
+    #[test]
+    fn test_from_body() {
+        let body = r#"[
+            {
+                "gatewayId": "0000-1111-2222",
+                "connectivity": {
+                    "status": "OK",
+                    "protocolVersion": "2022.1.3-1"
+                }
+            }
+        ]"#;
+
+        let response =
+            GetGatewaysResponse::from_body(body).expect("should parse valid gateways response");
+        assert_eq!(response.len(), 1);
+        assert_eq!(response[0].gateway_id, "0000-1111-2222");
+        assert_eq!(response[0].connectivity.status, "OK");
+    }
+}
+
+#[cfg(test)]
 #[test]
 fn parse_valid_body_correctly() {
     use crate::commands::types::GatewayConnectivity;

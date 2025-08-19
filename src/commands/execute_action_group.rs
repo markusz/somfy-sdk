@@ -37,15 +37,52 @@ pub type ExecuteActionGroupResponse = ActionGroupExecutionId;
 impl SomfyApiRequestResponse for ExecuteActionGroupResponse {}
 
 #[cfg(test)]
-#[test]
-fn parse_valid_body_correctly() {
-    let body = r#"{
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "generic-exec")]
+    #[test]
+    fn test_to_request() {
+        use crate::commands::traits::SomfyApiRequestCommand;
+        use crate::commands::types::{Action, ActionGroup};
+
+        let action_group = ActionGroup {
+            label: Some("Test Action".to_string()),
+            actions: vec![Action {
+                device_url: "io://test".to_string(),
+                commands: vec![],
+            }],
+        };
+
+        let command = ExecuteActionGroupCommand { action_group };
+        let request = command
+            .to_request()
+            .expect("should create valid request data");
+
+        assert_eq!(request.path, "/enduser-mobile-web/1/enduserAPI/exec/apply");
+        assert_eq!(request.method, crate::commands::traits::HttpMethod::POST);
+        assert!(request.query_params.is_empty());
+        assert_eq!(
+            request.header_map.get("content-type").unwrap(),
+            "application/json"
+        );
+        assert!(!request
+            .body
+            .as_bytes()
+            .expect("should read body bytes")
+            .is_empty());
+    }
+
+    #[test]
+    fn parse_valid_body_correctly() {
+        let body = r#"{
         "execId": "exec-12345678-1234-5678-9012-123456789012"
     }"#;
-    let resp =
-        ExecuteActionGroupResponse::from_body(body).expect("should parse valid body correctly");
+        let resp =
+            ExecuteActionGroupResponse::from_body(body).expect("should parse valid body correctly");
 
-    assert_eq!(resp.exec_id, "exec-12345678-1234-5678-9012-123456789012");
+        assert_eq!(resp.exec_id, "exec-12345678-1234-5678-9012-123456789012");
+    }
 }
 
 #[cfg(feature = "generic-exec")]
