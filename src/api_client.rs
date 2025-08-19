@@ -261,7 +261,7 @@ impl ApiClient {
     #[cfg(feature = "generic-exec")]
     pub async fn execute_actions(
         &self,
-        action_group: crate::commands::types::ActionGroup,
+        action_group: &crate::commands::types::ActionGroup,
     ) -> Result<crate::commands::execute_action_group::ExecuteActionGroupResponse, RequestError>
     {
         self.execute(

@@ -3,12 +3,12 @@ use crate::commands::types::ActionGroupExecutionId;
 
 #[cfg(feature = "generic-exec")]
 #[derive(Debug, Clone, PartialEq)]
-pub struct ExecuteActionGroupCommand {
-    pub action_group: crate::commands::types::ActionGroup,
+pub struct ExecuteActionGroupCommand<'a> {
+    pub action_group: &'a crate::commands::types::ActionGroup,
 }
 
 #[cfg(feature = "generic-exec")]
-impl crate::commands::traits::SomfyApiRequestCommand for ExecuteActionGroupCommand {
+impl crate::commands::traits::SomfyApiRequestCommand for ExecuteActionGroupCommand<'_> {
     type Response = ExecuteActionGroupResponse;
     fn to_request(
         &self,
@@ -54,7 +54,9 @@ mod tests {
             }],
         };
 
-        let command = ExecuteActionGroupCommand { action_group };
+        let command = ExecuteActionGroupCommand {
+            action_group: &action_group,
+        };
         let request = command
             .to_request()
             .expect("should create valid request data");
@@ -106,7 +108,7 @@ mod execute_action_group {
         };
 
         let command = crate::commands::execute_action_group::ExecuteActionGroupCommand {
-            action_group: execute_request,
+            action_group: &execute_request,
         };
         let request_data = command.to_request().expect("should not err");
         assert_eq!(
@@ -132,7 +134,7 @@ mod execute_action_group {
         };
 
         let command = crate::commands::execute_action_group::ExecuteActionGroupCommand {
-            action_group: execute_request,
+            action_group: &execute_request,
         };
         let request_data = command.to_request().expect("should not err");
 

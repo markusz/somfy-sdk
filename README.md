@@ -3,8 +3,8 @@
 A Rust library providing type-safe, async access to the Somfy API for controlling smart home devices.
 
 [![Unit & Integration Tests](https://github.com/markusz/somfy-sdk/actions/workflows/tests.yml/badge.svg)](https://github.com/markusz/somfy-sdk/actions/workflows/tests.yml)
-[![Crates.io](https://img.shields.io/crates/v/somfy-sdk-cli.svg)](https://crates.io/crates/somfy-sdk-cli)
-[![Documentation](https://docs.rs/somfy-sdk-cli/badge.svg)](https://docs.rs/somfy-sdk-cli)
+[![Crates.io](https://img.shields.io/crates/v/somfy-sdk.svg)](https://crates.io/crates/somfy-sdk)
+[![Documentation](https://docs.rs/somfy-sdk/badge.svg)](https://docs.rs/somfy-sdk)
 
 ## Overview
 
@@ -187,7 +187,7 @@ let actions = vec![Action {
     }],
 }];
 
-client.execute_actions(ExecuteRequest { 
+client.execute_actions(&ActionGroup { 
     label: Some("Dangerous operation".to_string()), 
     actions 
 }).await;
@@ -230,7 +230,7 @@ impl ApiClient {
     
     // Action execution
     // ⚠️ execute_actions needs to be enabled via the generic-exec feature flag. Be very careful when using it, as it can potentially harm your Somfy devices
-    pub async fn execute_actions(&self, request: ExecuteRequest) -> Result<ExecuteActionsResponse, RequestError>; 
+    pub async fn execute_actions(&self, request: &ActionGroup) -> Result<ExecuteActionsResponse, RequestError>; 
     pub async fn get_current_executions(&self) -> Result<GetCurrentExecutionsResponse, RequestError>;
     pub async fn get_execution(&self, execution_id: &str) -> Result<GetExecutionResponse, RequestError>;
     pub async fn cancel_all_executions(&self) -> Result<CancelAllExecutionsResponse, RequestError>;
@@ -282,7 +282,7 @@ client.unregister_event_listener(&listener.id).await?;
 ### Action Execution
 
 ```rust
-use somfy_sdk::commands::types::{Action, Command, ExecuteRequest};
+use somfy_sdk::commands::types::{Action, Command, ActionGroup};
 
 let actions = vec![Action {
     device_url: "io://0000-1111-2222/12345678".to_string(),
@@ -292,12 +292,12 @@ let actions = vec![Action {
     }]
 }];
 
-let request = ExecuteRequest {
+let request = ActionGroup {
     label: Some("Open blinds".to_string()),
     actions
 };
 
-let execution = client.execute_actions(request).await?;
+let execution = client.execute_actions(&request).await?;
 println!("Execution started: {}", execution.id);
 
 // Monitor execution
@@ -420,7 +420,7 @@ let request = ActionGroup {
     }]
 };
 
-api_client.execute_actions(request).await
+api_client.execute_actions(&request).await
 
 // ✅ Type-safe domain command - impossible to misuse, client.execute_actions(..) not even available
 

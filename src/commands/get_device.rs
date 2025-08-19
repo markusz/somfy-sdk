@@ -17,7 +17,7 @@ impl SomfyApiRequestCommand for GetDeviceCommand<'_> {
     type Response = GetDeviceResponse;
 
     fn to_request(&self) -> Result<RequestData, RequestError> {
-        let device_url = &self.device_url;
+        let device_url = self.device_url;
         let path = format!(
             "/enduser-mobile-web/1/enduserAPI/setup/devices/{}",
             encode(device_url)

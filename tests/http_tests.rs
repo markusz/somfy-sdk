@@ -144,7 +144,7 @@ mod http_integration_tests {
 
         let res = api_client_localhost()
             .await
-            .execute_actions(ag)
+            .execute_actions(&ag)
             .await
             .expect("should get a correct response from get device states");
         assert_eq!(res.exec_id, "exec-12345678-1234-5678-9012-123456789012");
