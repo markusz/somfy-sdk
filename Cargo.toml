@@ -8,6 +8,8 @@ rust-version = "1.82"
 
 description = "A Rust-based SDK for interacting with Somfy smart home devices and APIs."
 repository = "https://github.com/markusz/somfy-sdk"
+homepage = "https://github.com/markusz/somfy-sdk"
+readme = "README.md"
 keywords = ["somfy", "overkiz"]
 categories = ["api-bindings"]
 
